@@ -8,12 +8,14 @@ The PNG loader module provides the ability to load PNG format #pixmaps.
 End Rem
 Module BRL.PNGLoader
 
-ModuleInfo "Version: 1.04"
+ModuleInfo "Version: 1.05"
 ModuleInfo "Author: Mark Sibly"
 ModuleInfo "License: zlib/libpng"
 ModuleInfo "Copyright: Blitz Research Ltd"
 ModuleInfo "Modserver: BRL"
 
+ModuleInfo "History: 1.05"
+ModuleInfo "History: libpng update to 1.6.7."
 ModuleInfo "History: 1.04"
 ModuleInfo "History: libpng update to 1.2.12."
 ModuleInfo "History: Extra load error handling."
@@ -64,7 +66,7 @@ Function LoadPixmapPNG:TPixmap( url:Object )
 	EndIf
 	
 	Try
-		Local png_ptr=png_create_read_struct( "1.2.12",Null,Null,Null )
+		Local png_ptr=png_create_read_struct( "1.6.7",Null,Null,Null )
 		
 		' check for valid png_ptr
 		If Not png_ptr Then
@@ -161,7 +163,7 @@ Function SavePixmapPNG( pixmap:TPixmap,url:Object,compression=5 )
 	If Not png_stream Return
 	
 	Try
-		Local png_ptr=png_create_write_struct( "1.2.12",Null,Null,Null )
+		Local png_ptr=png_create_write_struct( "1.6.7",Null,Null,Null )
 		Local info_ptr=png_create_info_struct( png_ptr )
 	
 		png_set_write_fn png_ptr,Null,png_write_fn,png_flush_fn
