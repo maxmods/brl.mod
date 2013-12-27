@@ -6,12 +6,14 @@ bbdoc: Graphics/OpenGL Graphics
 End Rem
 Module BRL.GLGraphics
 
-ModuleInfo "Version: 1.14"
+ModuleInfo "Version: 1.15"
 ModuleInfo "Author: Mark Sibly, Simon Armstrong"
 ModuleInfo "License: zlib/libpng"
 ModuleInfo "Copyright: Blitz Research Ltd"
 ModuleInfo "Modserver: BRL"
 
+ModuleInfo "History: 1.15 Release"
+ModuleInfo "History: Increased OS X depth buffer size to 24 bits"
 ModuleInfo "History: 1.14 Release"
 ModuleInfo "History: Adjusted graphics size after creating window"
 ModuleInfo "History: 1.13 Release"

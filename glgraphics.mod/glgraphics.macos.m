@@ -68,7 +68,7 @@ static int _initAttrs( CGLPixelFormatAttribute attrs[16],int flags ){
 	int n=0;
 	if( flags & FLAGS_BACKBUFFER ) attrs[n++]=kCGLPFADoubleBuffer;
 	if( flags & FLAGS_ALPHABUFFER ){ attrs[n++]=kCGLPFAAlphaSize;attrs[n++]=1; }
-	if( flags & FLAGS_DEPTHBUFFER ){ attrs[n++]=kCGLPFADepthSize;attrs[n++]=1; }
+	if( flags & FLAGS_DEPTHBUFFER ){ attrs[n++]=kCGLPFADepthSize;attrs[n++]=24; }
 	if( flags & FLAGS_STENCILBUFFER ){ attrs[n++]=kCGLPFAStencilSize;attrs[n++]=1; }
 	if( flags & FLAGS_ACCUMBUFFER ){ attrs[n++]=kCGLPFAAccumSize;attrs[n++]=1; }
 	if( flags & FLAGS_FULLSCREEN ){
