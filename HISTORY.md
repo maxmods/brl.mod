@@ -1,6 +1,9 @@
 ## 1.1.0
 TBA
 
+#### brl.glgraphics - 1.15
+* Increased OS X depth buffer size to 24 bits.
+
 #### brl.pngloader - 1.05
 * Update to libpng 1.6.7.
 
