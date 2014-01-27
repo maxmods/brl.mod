@@ -7,12 +7,14 @@ The FreeAudio audio module provides FreeAudio drivers for use with the #audio mo
 End Rem
 Module BRL.FreeAudioAudio
 
-ModuleInfo "Version: 1.13"
+ModuleInfo "Version: 1.14"
 ModuleInfo "Author: Mark Sibly"
 ModuleInfo "License: zlib/libpng"
 ModuleInfo "Copyright: Blitz Research Ltd"
 ModuleInfo "Modserver: BRL"
 
+ModuleInfo "History: 1.14"
+ModuleInfo "History: Use ALSA instead of OSS on Linux."
 ModuleInfo "History: 1.13 Release"
 ModuleInfo "History: Fixed bug in FreeChannel Playing()"
 ModuleInfo "History: 1.12 Release"
@@ -204,8 +206,8 @@ TFreeAudioAudioDriver.Create "FreeAudio Multimedia",0
 ?MacOS
 TFreeAudioAudioDriver.Create "FreeAudio CoreAudio",0
 ?Linux
-TFreeAudioAudioDriver.Create "FreeAudio OpenSound System",0
-'TFreeAudioAudioDriver.Create "FreeAudio ALSA System",1
+'TFreeAudioAudioDriver.Create "FreeAudio OpenSound System",0
+TFreeAudioAudioDriver.Create "FreeAudio ALSA System",1
 ?
 TFreeAudioAudioDriver.Create "FreeAudio",-1
 

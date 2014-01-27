@@ -1,6 +1,9 @@
 ## 1.1.0
 TBA
 
+#### brl.freeaudioaudio - 1.14
+* Use ALSA instead of OSS on Linux.
+
 #### brl.glgraphics - 1.15
 * Increased OS X depth buffer size to 24 bits.
 
