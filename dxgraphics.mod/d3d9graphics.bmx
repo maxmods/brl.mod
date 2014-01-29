@@ -27,6 +27,8 @@ Global _graphics:TD3D9Graphics
 
 Global _autoRelease:TList
 
+Global _d3dOccQuery:IDirect3DQuery9
+
 Type TD3D9AutoRelease
 	Field unk:IUnknown
 End Type
@@ -96,6 +98,14 @@ Function OpenD3DDevice( hwnd,width,height,depth,hertz,flags )
 	_d3dDevRefs:+1
 	
 	_autoRelease=New TList
+
+	'Occlusion Query
+	If Not _d3dOccQuery
+		If _d3ddev.CreateQuery(9,_d3dOccQuery)<0 '9 hardcoded for D3DQUERYTYPE_OCCLUSION
+			DebugLog "Cannot create Occlussion Query!"
+		EndIf
+	EndIf
+	If _d3dOccQuery _d3dOccQuery.Issue(2) 'D3DISSUE_BEGIN
 	
 	Return True
 End Function
@@ -109,6 +119,9 @@ Function CloseD3DDevice()
 		Next
 		_autoRelease=Null
 
+		If _d3dOccQuery _d3dOccQuery.Release_
+		_d3dOccQuery = Null
+
 		_d3dDev.Release_
 		_d3dDev=Null
 		_presentParams=Null
@@ -116,13 +129,22 @@ Function CloseD3DDevice()
 End Function
 
 Function ResetD3DDevice()
+	If _d3dOccQuery _d3dOccQuery.Release_
+	
 	If _d3dDev.Reset( _presentParams )<0
 		Throw "_d3dDev.Reset failed"
 	EndIf
+
+	If _d3ddev.CreateQuery(9,_d3dOccQuery)<0
+		DebugLog "Cannot create Occlussion Query!"
+	EndIf
+	If _d3dOccQuery _d3dOccQuery.Issue(2) 'D3DISSUE_BEGIN
 		
 End Function
 
 Public
+
+Global UseDX9RenderLagFix:Int = 0
 
 Type TD3D9Graphics Extends TGraphics
 
@@ -219,6 +241,8 @@ Type TD3D9Graphics Extends TGraphics
 		EndIf
 		
 		Select _d3dDev.TestCooperativeLevel()
+		Case D3DERR_DRIVERINTERNALERROR
+			Throw "D3D Internal Error"
 		Case D3D_OK
 			If reset
 
@@ -297,7 +321,7 @@ Type TD3D9GraphicsDriver Extends TGraphicsDriver
 	Method Create:TD3D9GraphicsDriver()
 	
 		'create d3d9
-		If Not d3d9Lib Return
+		If Not d3d9Lib Return Null
 		
 		_d3d=Direct3DCreate9( 32 )
 		If Not _d3d Return Null
@@ -321,13 +345,13 @@ Type TD3D9GraphicsDriver Extends TGraphicsDriver
 				Continue
 			EndIf
 			
-			Local mode:TGraphicsMode=New TGraphicsMode
-			mode.width=d3dmode.Width
-			mode.height=d3dmode.Height
-			mode.hertz=d3dmode.RefreshRate
-			mode.depth=32
+			Local Mode:TGraphicsMode=New TGraphicsMode
+			Mode.width=d3dmode.Width
+			Mode.height=d3dmode.Height
+			Mode.hertz=d3dmode.RefreshRate
+			Mode.depth=32
 			
-			_modes[j]=mode
+			_modes[j]=Mode
 			j:+1
 		Next
 		_modes=_modes[..j]
@@ -355,13 +379,31 @@ Type TD3D9GraphicsDriver Extends TGraphicsDriver
 	Method CreateGraphics:TD3D9Graphics( width,height,depth,hertz,flags )
 		Return New TD3D9Graphics.Create( width,height,depth,hertz,flags )
 	End Method
-	
+
+	Method Graphics:TD3D9Graphics()
+		Return _graphics
+	End Method
+		
 	Method SetGraphics( g:TGraphics )
 		_graphics=TD3D9Graphics( g )
 	End Method
 	
 	Method Flip( sync )
-		Return _graphics.Flip( sync )
+		Local present:Int = _graphics.Flip(sync)
+		If UseDX9RenderLagFix Then
+			Local pixelsdrawn:Int
+			If _d3dOccQuery
+				_d3dOccQuery.Issue(1) 'D3DISSUE_END
+				
+				While _d3dOccQuery.GetData( Varptr pixelsdrawn,4,1 )=1 'D3DGETDATA_FLUSH
+					If  _d3dOccQuery.GetData( Varptr pixelsdrawn,4,1 )<0 Exit
+				Wend
+
+				_d3dOccQuery.Issue(2) 'D3DISSUE_BEGIN
+			EndIf
+		End If
+		
+		Return present
 	End Method
 	
 	Method GetDirect3D:IDirect3D9()

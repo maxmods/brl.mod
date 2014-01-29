@@ -1,6 +1,9 @@
 ## 1.1.0
 TBA
 
+#### brl.dxgraphics - 1.31
+* Added Occlussion Query render lag fix.
+
 #### brl.freeaudioaudio - 1.14
 * Use ALSA instead of OSS on Linux.
 
