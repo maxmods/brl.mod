@@ -13,6 +13,9 @@ TBA
 #### brl.pngloader - 1.05
 * Update to libpng 1.6.7.
 
+#### brl.standardio - 1.06
+* Added Eof() method to TCStandardIO.
+
 ## 1.0.0
 2013-12-10
 

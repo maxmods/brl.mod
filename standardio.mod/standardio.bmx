@@ -6,12 +6,14 @@ bbdoc: System/StandardIO
 End Rem
 Module BRL.StandardIO
 
-ModuleInfo "Version: 1.05"
+ModuleInfo "Version: 1.06"
 ModuleInfo "Author: Mark Sibly"
 ModuleInfo "License: zlib/libpng"
 ModuleInfo "Copyright: Blitz Research Ltd"
 ModuleInfo "Modserver: BRL"
 
+ModuleInfo "History: 1.06"
+ModuleInfo "History: Added Eof() method to TCStandardIO"
 ModuleInfo "History: 1.05 Release"
 ModuleInfo "History: 1.04 Release"
 ModuleInfo "History: CStandardIO now goes through a UTF8 textstream"
@@ -20,6 +22,10 @@ Import BRL.TextStream
 
 Type TCStandardIO Extends TStream
 
+	Method Eof:Int()
+		Return feof_( stdin_ )
+	End Method
+	
 	Method Flush()
 		fflush_ stdout_
 	End Method
