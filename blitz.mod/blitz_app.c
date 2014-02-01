@@ -20,14 +20,14 @@ void bbOnEnd( void (*f)() ){
 }
 
 void bbWriteStdout( BBString *t ){
-	char *p=bbStringToCString( t );
+	char *p=bbStringToUTF8String( t );
 	fprintf( stdout,"%s",p );
 	fflush( stdout );
 	bbMemFree(p);
 }
 
 void bbWriteStderr( BBString *t ){
-	char *p=bbStringToCString( t );
+	char *p=bbStringToUTF8String( t );
 	fprintf( stderr,"%s",p );
 	fflush( stderr );
 	bbMemFree(p);

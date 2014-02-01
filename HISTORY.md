@@ -1,6 +1,9 @@
 ## 1.1.0
 TBA
 
+#### brl.blitz - 1.18
+* WriteStdout and WriteStderr now write UTF-8.
+
 #### brl.dxgraphics - 1.31
 * Added Occlussion Query render lag fix.
 

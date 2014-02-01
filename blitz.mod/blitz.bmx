@@ -8,12 +8,14 @@ bbdoc: BASIC/BlitzMax runtime
 End Rem
 Module BRL.Blitz
 
-ModuleInfo "Version: 1.17"
+ModuleInfo "Version: 1.18"
 ModuleInfo "Author: Mark Sibly"
 ModuleInfo "License: zlib/libpng"
 ModuleInfo "Copyright: Blitz Research Ltd"
 ModuleInfo "Modserver: BRL"
 
+ModuleInfo "History: 1.18"
+ModuleInfo "History: WriteStdout and WriteStderr now write UTF-8"
 ModuleInfo "History: 1.17 Release"
 ModuleInfo "History: Added kludges for Lion llvm"
 ModuleInfo "History: Removed Nan/Inf"
@@ -311,7 +313,7 @@ about:
 <br>
 The default GC mode is automatic GC.
 End Rem
-Function GCSetMode( mode )="bbGCSetMode"
+Function GCSetMode( Mode )="bbGCSetMode"
 
 Rem
 bbdoc: Suspend garbage collector
