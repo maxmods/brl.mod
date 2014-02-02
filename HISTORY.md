@@ -19,6 +19,9 @@ TBA
 #### brl.standardio - 1.06
 * Added Eof() method to TCStandardIO.
 
+#### brl.system - 1.28
+* Added custom format option to CurrentDate().
+
 ## 1.0.0
 2013-12-10
 
