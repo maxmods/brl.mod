@@ -3,12 +3,14 @@ Strict
 
 Module BRL.DXGraphics
 
-ModuleInfo "Version: 1.30"
+ModuleInfo "Version: 1.31"
 ModuleInfo "Author: Simon Armstrong, Mark Sibly"
 ModuleInfo "License: zlib/libpng"
 ModuleInfo "Copyright: Blitz Research Ltd"
 ModuleInfo "Modserver: BRL"
 
+ModuleInfo "History: 1.31"
+ModuleInfo "History: Added Occlussion Query render lag fix."
 ModuleInfo "History: 1.30 Release"
 ModuleInfo "History: Adjusted graphics size after creating window"
 ModuleInfo "History: 1.29 Release"

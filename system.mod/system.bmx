@@ -6,12 +6,15 @@ bbdoc: System/System
 End Rem
 Module BRL.System
 
-ModuleInfo "Version: 1.26"
+ModuleInfo "Version: 1.28"
 ModuleInfo "Author: Mark Sibly, Simon Armstrong"
 ModuleInfo "License: zlib/libpng"
 ModuleInfo "Copyright: Blitz Research Ltd"
 ModuleInfo "Modserver: BRL"
 
+ModuleInfo "History: 1.28"
+ModuleInfo "History: Added custom format option to CurrentDate()."
+ModuleInfo "History: 1.27"
 ModuleInfo "History: Moved event enums from system.h to event.mod/event.h"
 ModuleInfo "Histroy: Moved keycode enums from system.h to keycodes.mod/keycodes.h"
 ModuleInfo "History: 1.26 Release"
@@ -134,12 +137,37 @@ Rem
 bbdoc: Get current date
 returns: The current date as a string
 about:
-Returns the current date in the format: DD MON YYYY (i.e. 10 DEC 2000).
+By default, it returns the current date in the format: DD MON YYYY (i.e. 10 DEC 2000).
+You can also specify some parameters to return the date in a format of your choice:
+[ @parameter | @description
+* %%a | Abbreviated day name (sun - mon).
+* %%A | Long day name (Sunday - Monday).
+* %%b | Abbreviated month name (jan - feb).
+* %%B | Long month name (January...).
+* %%c | Locale date & time.
+* %%d | day - in number (1..31).
+* %%H | hour - in number (0..23).
+* %%I | hour - in number (1..12).
+* %%j | day of the year (1..366).
+* %%m | month - in number (1..12).
+* %%M | minutes - in number (00..59).
+* %%P | AM / PM.
+* %%S | seconds - in number (00..59).
+* %%U | week number
+* %%w | day of the week (0..6).
+* %%W | week of the year (0..53).
+* %%x | locale data representation.
+* %%y | year without century (2014 --> 14).
+* %%Y | Year (2014).
+* %%Z | Time zone name.
+]
+You can use these parameters together:<br>
+CurrentDate("Month: %%a Day: %%d")<br>
 End Rem
-Function CurrentDate$()
+Function CurrentDate$(_format$="%d %b %Y")
 	Local	time[256],buff:Byte[256]
 	time_(time)
-	strftime_(buff,256,"%d %b %Y",localtime_( time ))
+	strftime_(buff,256,_format,localtime_( time ))
 	Return String.FromCString(buff)
 End Function
 

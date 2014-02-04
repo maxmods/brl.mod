@@ -1,6 +1,12 @@
 ## 1.1.0
 TBA
 
+#### brl.blitz - 1.18
+* WriteStdout and WriteStderr now write UTF-8.
+
+#### brl.dxgraphics - 1.31
+* Added Occlussion Query render lag fix.
+
 #### brl.freeaudioaudio - 1.14
 * Use ALSA instead of OSS on Linux.
 * Added Pulse audio on Linux.
@@ -10,6 +16,12 @@ TBA
 
 #### brl.pngloader - 1.05
 * Update to libpng 1.6.7.
+
+#### brl.standardio - 1.06
+* Added Eof() method to TCStandardIO.
+
+#### brl.system - 1.28
+* Added custom format option to CurrentDate().
 
 ## 1.0.0
 2013-12-10
