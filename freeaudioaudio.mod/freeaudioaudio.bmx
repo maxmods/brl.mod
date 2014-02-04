@@ -14,6 +14,7 @@ ModuleInfo "Copyright: Blitz Research Ltd"
 ModuleInfo "Modserver: BRL"
 
 ModuleInfo "History: 1.14"
+ModuleInfo "History: Added Pulse audio on Linux."
 ModuleInfo "History: Use ALSA instead of OSS on Linux."
 ModuleInfo "History: 1.13 Release"
 ModuleInfo "History: Fixed bug in FreeChannel Playing()"
@@ -206,8 +207,9 @@ TFreeAudioAudioDriver.Create "FreeAudio Multimedia",0
 ?MacOS
 TFreeAudioAudioDriver.Create "FreeAudio CoreAudio",0
 ?Linux
-'TFreeAudioAudioDriver.Create "FreeAudio OpenSound System",0
-TFreeAudioAudioDriver.Create "FreeAudio ALSA System",1
+TFreeAudioAudioDriver.Create "FreeAudio Pulse Audio",0
+TFreeAudioAudioDriver.Create "FreeAudio ALSA",1
+'TFreeAudioAudioDriver.Create "FreeAudio OpenSound System",2
 ?
 TFreeAudioAudioDriver.Create "FreeAudio",-1
 
