@@ -11,6 +11,9 @@ TBA
 * Use ALSA instead of OSS on Linux.
 * Added Pulse audio on Linux.
 
+#### brl.freetypefont - 1.10
+* Added kerning support.
+
 #### brl.glgraphics - 1.15
 * Increased OS X depth buffer size to 24 bits.
 

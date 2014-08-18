@@ -3,12 +3,14 @@ Strict
 
 Module BRL.FreeTypeFont
 
-ModuleInfo "Version: 1.09"
+ModuleInfo "Version: 1.10"
 ModuleInfo "Author: Simon Armstrong, Mark Sibly"
 ModuleInfo "License: zlib/libpng"
 ModuleInfo "Copyright: Blitz Research Ltd"
 ModuleInfo "Modserver: BRL"
 
+ModuleInfo "History: 1.10"
+ModuleInfo "History: Added kerning support."
 ModuleInfo "History: 1.09 Release"
 ModuleInfo "History: Offset glyph rect to allow for smooth font border"
 ModuleInfo "History: 1.08 Release"
@@ -90,6 +92,23 @@ Type TFreeTypeFont Extends BRL.Font.TFont
 	
 	Method CharToGlyph( char )
 		Return FT_Get_Char_Index( _ft_face,char )-1
+	End Method
+	
+	Method HasKerning:Int()
+		Return _face.flags & FT_FACE_FLAG_KERNING
+	End Method
+	
+	Method Kerning:FTVector(leftChar:Int, rightChar:Int, kern_mode:Int = FT_KERNING_DEFAULT, vec:FTVector)
+		If Not vec Then
+			vec = New FTVector
+		End If
+		
+		Local lg:Int = FT_Get_Char_Index(_ft_face, leftChar)
+		Local rg:Int = FT_Get_Char_Index(_ft_face, rightChar)
+		
+		If FT_Get_Kerning(_ft_face, lg, rg, kern_mode, vec) Return Null
+		
+		Return vec
 	End Method
 	
 	Method LoadGlyph:TFreeTypeGlyph( index )
