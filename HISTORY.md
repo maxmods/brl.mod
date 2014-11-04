@@ -4,6 +4,12 @@ TBA
 #### brl.blitz - 1.18
 * WriteStdout and WriteStderr now write UTF-8.
 
+#### brl.d3d7max2d - 1.20
+* Changed Assert to Throw. One can at least catch a Throw.
+
+#### brl.d3d9max2d - 1.01
+* Changed Assert to Throw. One can at least catch a Throw.
+
 #### brl.dxgraphics - 1.31
 * Added Occlussion Query render lag fix.
 
