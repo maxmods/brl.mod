@@ -6,12 +6,14 @@ bbdoc: Data structures/Maps
 End Rem
 Module BRL.Map
 
-ModuleInfo "Version: 1.07"
+ModuleInfo "Version: 1.08"
 ModuleInfo "Author: Mark Sibly"
 ModuleInfo "License: zlib/libpng"
 ModuleInfo "Copyright: Blitz Research Ltd"
 ModuleInfo "Modserver: BRL"
 
+ModuleInfo "History: 1.08"
+ModuleInfo "History: Added Int and Byte Ptr key map types."
 ModuleInfo "History: 1.07 Release"
 ModuleInfo "History: Fixed MapKeys/MapValues functions to return enumerators"
 ModuleInfo "History: 1.06 Release"
@@ -25,6 +27,14 @@ ModuleInfo "History: Finally changed to red/back tree!"
 ModuleInfo "History: Added procedural interface"
 ModuleInfo "History: 1.02 Release"
 ModuleInfo "History: Fixed TMap.Remove:TNode not returning node"
+
+Import "intmap.bmx"
+Import "ptrmap.bmx"
+
+Import "tree/*.h"
+Import "tree/tree.c"
+
+Import "map.c"
 
 Private
 

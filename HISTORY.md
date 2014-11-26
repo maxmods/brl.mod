@@ -23,6 +23,9 @@ TBA
 #### brl.glgraphics - 1.15
 * Increased OS X depth buffer size to 24 bits.
 
+#### brl.map - 1.08
+* Added Int and Byte Ptr key map types.
+
 #### brl.pngloader - 1.05
 * Update to libpng 1.6.7.
 
