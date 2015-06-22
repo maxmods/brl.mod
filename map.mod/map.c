@@ -66,7 +66,7 @@ BBObject * bmx_map_intmap_valueforkey(int key, struct tree_root ** root) {
 	struct intmap_node node;
 	node.key = key;
 	
-	struct intmap_node * found = (struct intmap_node *)tree_map(&node.link, compare_intmap_nodes, root);
+	struct intmap_node * found = (struct intmap_node *)tree_search(&node, compare_intmap_nodes, *root);
 	
 	if (found) {
 		return found->value;
@@ -190,7 +190,7 @@ BBObject * bmx_map_ptrmap_valueforkey(void * key, struct tree_root ** root) {
 	struct ptrmap_node node;
 	node.key = key;
 	
-	struct ptrmap_node * found = (struct ptrmap_node *)tree_map(&node.link, compare_ptrmap_nodes, root);
+	struct ptrmap_node * found = (struct ptrmap_node *)tree_search(&node, compare_ptrmap_nodes, *root);
 	
 	if (found) {
 		return found->value;
