@@ -3,6 +3,7 @@ TBA
 
 #### brl.blitz - 1.18
 * WriteStdout and WriteStderr now write UTF-8.
+* Fixed MemExtend Null pointer crash.
 
 #### brl.d3d7max2d - 1.20
 * Changed Assert to Throw. One can at least catch a Throw.
