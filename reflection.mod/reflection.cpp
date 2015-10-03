@@ -28,6 +28,10 @@ int bbRefObjectClass(){
 	return (int)&bbObjectClass;
 }
 
+BBArray * bbRefArrayNull() {
+	return &bbEmptyArray;
+}
+
 int bbRefArrayLength( BBArray *array, int dim ){
 	return array->scales[((dim <= array->dims)? dim : 0)];
 }

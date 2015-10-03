@@ -30,6 +30,9 @@ TBA
 #### brl.pngloader - 1.05
 * Update to libpng 1.6.7.
 
+#### brl.reflection - 1.03
+* Assign bbEmptyArray for Null arrays.
+
 #### brl.standardio - 1.06
 * Added Eof() method to TCStandardIO.
 

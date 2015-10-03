@@ -6,12 +6,14 @@ bbdoc: BASIC/Reflection
 End Rem
 Module BRL.Reflection
 
-ModuleInfo "Version: 1.02"
+ModuleInfo "Version: 1.03"
 ModuleInfo "Author: Mark Sibly"
 ModuleInfo "License: zlib/libpng"
 ModuleInfo "Copyright: Blitz Research Ltd"
 ModuleInfo "Modserver: BRL"
 
+ModuleInfo "History: 1.03"
+ModuleInfo "History: Assign bbEmptyArray for Null arrays."
 ModuleInfo "History: 1.02 Release"
 ModuleInfo "History: Added Brucey's size fix to GetArrayElement()/SetArrayElement()."
 ModuleInfo "History: 1.01 Release"
@@ -40,6 +42,7 @@ Function bbRefArrayLength( array:Object, dim:Int = 0 )
 Function bbRefArrayTypeTag$( array:Object )
 Function bbRefArrayDimensions:Int( array:Object )
 Function bbRefArrayCreate:Object( typeTag:Byte Ptr,dims:Int[] )
+Function bbRefArrayNull:Object()
 
 Function bbRefFieldPtr:Byte Ptr( obj:Object,index )
 Function bbRefMethodPtr:Byte Ptr( obj:Object,index )
@@ -145,6 +148,10 @@ Function _Assign( p:Byte Ptr,typeId:TTypeId,value:Object )
 				t=bbRefGetSuperClass( t )
 			Wend
 			If Not t Throw "ERROR"
+		Else
+			If typeId.Name().Endswith("]") Then
+				value = bbRefArrayNull()
+			EndIf
 		EndIf
 		bbRefAssignObject p,value
 	End Select
