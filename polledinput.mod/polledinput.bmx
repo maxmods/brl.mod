@@ -350,3 +350,10 @@ Function WaitMouse()
 		Next
 	Forever
 End Function
+
+Rem
+bbdoc: Enables or disables autopolling.
+End Rem
+Function SetAutoPoll(value:Int)
+	autoPoll = value
+End Function
