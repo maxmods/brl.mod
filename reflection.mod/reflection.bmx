@@ -1,4 +1,3 @@
-
 Strict
 
 Rem
@@ -12,6 +11,8 @@ ModuleInfo "License: zlib/libpng"
 ModuleInfo "Copyright: Blitz Research Ltd"
 ModuleInfo "Modserver: BRL"
 
+ModuleInfo "History: 1.16 [gwron]"
+ModuleInfo "History: minor adjustments to code (cleanup)."
 ModuleInfo "History: 1.15 [brucey]"
 ModuleInfo "History: fixed _Assign not setting bbEmptyArray for Null arrays."
 ModuleInfo "History: 1.14 [grable]"
@@ -218,44 +219,15 @@ Function _Assign( p:Byte Ptr,typeId:TTypeId,value:Object )
 	End Select
 End Function
 
-Function _CallMethod:Object( p:Byte Ptr,retTypeId:TTypeId,obj:Object,args:Object[],argTypes:TTypeId[] )
-	Local q[10], sp:Byte Ptr = q
-	bbRefPushObject sp,obj
-	sp:+4
-	If retTypeId=LongTypeId sp:+8
-	For Local i=0 Until args.length
-		If Int Ptr(sp)>=Int Ptr(q)+8 Throw "ERROR"
-		sp=_Push( sp,argTypes[i],args[i] )
-	Next
-	If Int Ptr(sp)>Int Ptr(q)+8 Throw "ERROR"
-	Select retTypeId
-	Case ByteTypeId,ShortTypeId,IntTypeId
-		Local f(p0,p1,p2,p3,p4,p5,p6,p7)=p
-		Return String.FromInt( f( q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7] ) )
-	Case LongTypeId
-		'Throw "TODO"
-		Local f:Long(p0,p1,p2,p3,p4,p5,p6,p7)=p
-		Return String.FromLong( f( q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7] ) )			
-	Case FloatTypeId
-		Local f:Float(p0,p1,p2,p3,p4,p5,p6,p7)=p
-		Return String.FromFloat( f( q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7] ) )
-	Case DoubleTypeId
-		Local f:Double(p0,p1,p2,p3,p4,p5,p6,p7)=p
-		Return String.FromDouble( f( q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7] ) )
-	Default
-		If retTypeId.ExtendsType(PointerTypeId) Or retTypeId.ExtendsType(FunctionTypeId) Then
-			Local f:Byte Ptr(p0,p1,p2,p3,p4,p5,p6,p7)=p
-			Return String.FromInt( Int f( q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7] ) )		
-		Else
-			Local f:Object(p0,p1,p2,p3,p4,p5,p6,p7)=p
-			Return f( q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7] )
-		EndIf
-	End Select
-End Function
-	
-Function _CallFunction:Object( funcp:Byte Ptr, retTypeId:TTypeId, args:Object[], argtypes:TTypeId[])
+Function _Call:Object( callableP:Byte Ptr, retTypeId:TTypeId, obj:Object=null, args:Object[], argtypes:TTypeId[])
 	Local q:Int[10], sp:Byte Ptr = q
-	If retTypeId = LongTypeId sp :+ 8
+
+	If obj 'method call of an instance
+		bbRefPushObject sp,obj
+		sp:+4
+	EndIf
+
+	If retTypeId = LongTypeId Then sp :+ 8
 	For Local i:Int = 0 Until args.Length
 		If Int Ptr(sp) >= Int Ptr(q)+8 Then Throw "ERROR"
 		sp = _Push( sp, argtypes[i], args[i])
@@ -263,28 +235,33 @@ Function _CallFunction:Object( funcp:Byte Ptr, retTypeId:TTypeId, args:Object[],
 	If Int Ptr(sp) > Int Ptr(q)+8 Then Throw "ERROR"
 	Select retTypeId
 		Case ByteTypeId, ShortTypeId, IntTypeId
-			Local f(p0, p1, p2, p3, p4, p5, p6, p7) = funcp
+			Local f(p0, p1, p2, p3, p4, p5, p6, p7) = callableP
 			Return String.FromInt( f( q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7] ) )
 		Case LongTypeId
 			'Throw "TODO"
-			Local f:Long(p0,p1,p2,p3,p4,p5,p6,p7) = funcp
+			Local f:Long(p0,p1,p2,p3,p4,p5,p6,p7) = callableP
 			Return String.FromLong( f( q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7] ) )					
 		Case FloatTypeId
-			Local f:Float(p0, p1, p2, p3, p4, p5, p6, p7) = funcp
+			Local f:Float(p0, p1, p2, p3, p4, p5, p6, p7) = callableP
 			Return String.FromFloat( f( q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7] ) )
 		Case DoubleTypeId
-			Local f:Double(p0, p1, p2, p3, p4, p5, p6, p7) = funcp
+			Local f:Double(p0, p1, p2, p3, p4, p5, p6, p7) = callableP
 			Return String.FromDouble( f( q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7] ) )
 		Default
 			If retTypeId.ExtendsType(PointerTypeId) Or retTypeId.ExtendsType(FunctionTypeId) Then
-				Local f:Int(p0, p1, p2, p3, p4, p5, p6, p7) = funcp
-				Return String.FromInt( f( q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7] ) )
+				If not obj 'function call
+					Local f:Int(p0, p1, p2, p3, p4, p5, p6, p7) = callableP
+					Return String.FromInt( f( q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7] ) )
+				Else 'method call
+					Local f:Byte Ptr(p0,p1,p2,p3,p4,p5,p6,p7) = callableP
+					Return String.FromInt( Int f( q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7] ) )
+				EndIf
 			Else
-				Local f:Object(p0, p1, p2, p3, p4, p5, p6, p7) = funcp
+				Local f:Object(p0, p1, p2, p3, p4, p5, p6, p7) = callableP
 				Return f( q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7] )
 			EndIf
-	EndSelect
-EndFunction
+	End Select
+End Function
 
 Function TypeTagForId$( id:TTypeId )
 	If id.ExtendsType( ArrayTypeId )
@@ -309,15 +286,13 @@ Function TypeTagForId$( id:TTypeId )
 		Return s
 	EndIf
 	Select id
-	Case ByteTypeId Return "b"
-	Case ShortTypeId Return "s"
-	Case IntTypeId Return "i"
-	Case LongTypeId Return "l"
-	Case FloatTypeId Return "f"
-	Case DoubleTypeId Return "d"
-	Case StringTypeId Return "$"
-	Case PointerTypeId Return "*"
-	Case FunctionTypeId Return "("
+		Case ByteTypeId Return "b"
+		Case ShortTypeId Return "s"
+		Case IntTypeId Return "i"
+		Case LongTypeId Return "l"
+		Case FloatTypeId Return "f"
+		Case DoubleTypeId Return "d"
+		Case StringTypeId Return "$"
 	End Select
 	Throw "ERROR"
 End Function
@@ -404,15 +379,13 @@ Function TypeIdForTag:TTypeId( ty$ )
 		Return id
 	EndIf
 	Select ty
-	Case "b" Return ByteTypeId
-	Case "s" Return ShortTypeId
-	Case "i" Return IntTypeId
-	Case "l" Return LongTypeId
-	Case "f" Return FloatTypeId
-	Case "d" Return DoubleTypeId
-	Case "$" Return StringTypeId
-	Case "*" Return PointerTypeId
-	Case "(" Return FunctionTypeId
+		Case "b" Return ByteTypeId
+		Case "s" Return ShortTypeId
+		Case "i" Return IntTypeId
+		Case "l" Return LongTypeId
+		Case "f" Return FloatTypeId
+		Case "d" Return DoubleTypeId
+		Case "$" Return StringTypeId
 	End Select
 End Function
 
@@ -713,7 +686,7 @@ Type TField Extends TMember
 	bbdoc: Invoke function pointer field
 	End Rem
 	Method Invoke:Object( obj:Object, args:Object[] = Null)
-		Return _CallFunction( GetPointer(obj), _typeId._retType, args, _typeId._argTypes)
+		Return _Call( GetPointer(obj), _typeId.ReturnType(), null, args, _typeId.ArgTypes())
 	EndMethod	
 	
 	Field _index
@@ -768,10 +741,7 @@ Type TMethod Extends TMember
 	bbdoc: Invoke method
 	End Rem
 	Method Invoke:Object( obj:Object,args:Object[] )
-		If _index<65536
-			Return _CallMethod( bbRefMethodPtr( obj,_index ),_typeId.ReturnType(),obj,args,_typeId._argTypes )
-		EndIf
-		Return _CallMethod( Byte Ptr(_index),_typeId,obj,args,_typeId._argTypes )
+		Return _Call( FunctionPtr(obj), ReturnType(), obj, args, ArgTypes() )
 	End Method
 	
 	Field _selfTypeId:TTypeId,_index
@@ -825,7 +795,7 @@ Type TFunction Extends TMember
 	bbdoc: Invoke type function
 	endrem	
 	Method Invoke:Object( obj:Object, args:Object[] = Null)
-		Return _CallFunction( FunctionPtr(obj), _typeId._retType, args, _typeId._argTypes)
+		Return _Call( FunctionPtr(obj), ReturnType(), null, args, ArgTypes())
 	End Method
 	
 	Field _selfTypeId:TTypeId, _fptr:Byte Ptr, _index:Int
