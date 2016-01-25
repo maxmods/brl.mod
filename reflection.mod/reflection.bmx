@@ -202,6 +202,8 @@ Function _Assign( p:Byte Ptr,typeId:TTypeId,value:Object )
 				(Int Ptr p)[0]=Int Byte Ptr NullFunctionError
 			EndIf
 			Return
+		ElseIf typeId.ExtendsType(ArrayTypeId)
+			If Not value Then value = bbRefArrayNull()
 		EndIf
 		If value
 			Local c=typeId._class
@@ -210,10 +212,6 @@ Function _Assign( p:Byte Ptr,typeId:TTypeId,value:Object )
 				t=bbRefGetSuperClass( t )
 			Wend
 			If Not t Throw "ERROR"
-		Else
-			If typeId.Name().Endswith("]") Then
-				value = bbRefArrayNull()
-			EndIf
 		EndIf
 		bbRefAssignObject p,value
 	End Select
