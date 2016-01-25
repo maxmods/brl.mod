@@ -5,12 +5,14 @@ bbdoc: BASIC/Reflection
 End Rem
 Module BRL.Reflection
 
-ModuleInfo "Version: 1.15"
+ModuleInfo "Version: 1.17"
 ModuleInfo "Author: Mark Sibly"
 ModuleInfo "License: zlib/libpng"
 ModuleInfo "Copyright: Blitz Research Ltd"
 ModuleInfo "Modserver: BRL"
 
+ModuleInfo "History: 1.17 [grable]"
+ModuleInfo "History: Fixed missing ElementType for ArrayTypeId"
 ModuleInfo "History: 1.16 [gwron]"
 ModuleInfo "History: minor adjustments to code (cleanup)."
 ModuleInfo "History: 1.15 [brucey]"
@@ -473,6 +475,9 @@ Rem
 bbdoc: Primitive null type
 End Rem
 Global NullTypeId:TTypeId=New TTypeId.Init( "Null",4 )
+
+' finish setup of array type (set default for zero-sized or null-arrays)
+ArrayTypeId._ElementType = NullTypeId
 
 Rem
 bbdoc: Type member - field or method.
