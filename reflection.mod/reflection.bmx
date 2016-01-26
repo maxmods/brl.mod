@@ -743,7 +743,7 @@ Type TMethod Extends TMember
 	Rem
 	bbdoc: Invoke method
 	End Rem
-	Method Invoke:Object( obj:Object,args:Object[] )
+	Method Invoke:Object( obj:Object,args:Object[] = Null )
 		Return _Call( FunctionPtr(obj), ReturnType(), obj, args, ArgTypes() )
 	End Method
 	
