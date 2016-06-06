@@ -232,6 +232,12 @@ void bbSystemEmitOSEvent( XEvent *xevent,BBObject *source ){
 	case MotionNotify:
 		id=BBEVENT_MOUSEMOVE;
 		break;
+	case FocusIn:
+		id=BBEVENT_APPRESUME;
+		break;
+	case FocusOut:
+		id=BBEVENT_APPSUSPEND;
+		break;
 	case ClientMessage:
 		if( xevent->xclient.data.l[0]==XInternAtom( x_display,"WM_DELETE_WINDOW",True ) ){
 			id=BBEVENT_APPTERMINATE;
