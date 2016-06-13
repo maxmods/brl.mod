@@ -233,14 +233,22 @@ void bbSystemEmitOSEvent( XEvent *xevent,BBObject *source ){
 		id=BBEVENT_MOUSEMOVE;
 		break;
 	case FocusIn:
+		//skip if grabbing/ungrabbing, as this is called in an
+		//"alt-tab-'out'"-situation too (FocusIn - FocusOut - FocusIn)
+		if( xevent->xfocus.mode == NotifyGrab || xevent->xfocus.mode == NotifyUngrab ) {
+			break;
+		}
+
 		id=BBEVENT_APPRESUME;
 		break;
 	case FocusOut:
 		//ignore if lost focus because the window got grabbed
 		//(moving around the windowed application)
-		if( xevent->xfocus.mode == NotifyGrab || xevent->xfocus.mode == NotifyUngrab) {
+		//or ungrabbed (happens while Alt-Tabbing-"in")
+		if( xevent->xfocus.mode == NotifyGrab || xevent->xfocus.mode == NotifyUngrab ) {
 			break;
 		}
+
 		id=BBEVENT_APPSUSPEND;
 		break;
 	case ClientMessage:
