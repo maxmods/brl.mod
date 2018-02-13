@@ -1,4 +1,3 @@
-
 Strict
 
 Rem
@@ -6,16 +5,56 @@ bbdoc: BASIC/Reflection
 End Rem
 Module BRL.Reflection
 
-ModuleInfo "Version: 1.03"
+ModuleInfo "Version: 1.21"
 ModuleInfo "Author: Mark Sibly"
 ModuleInfo "License: zlib/libpng"
 ModuleInfo "Copyright: Blitz Research Ltd"
 ModuleInfo "Modserver: BRL"
 
-ModuleInfo "History: 1.03"
-ModuleInfo "History: Assign bbEmptyArray for Null arrays."
+ModuleInfo "History: 1.21 [grable]"
+ModuleInfo "History: fixed _Push not setting bbEmptyArray for Null arrays."
+ModuleInfo "History: 1.20 [derron]"
+ModuleInfo "History: Fixed typo, and added Null argument to TMethod.Invoke()"
+ModuleInfo "History: 1.19 [grable]"
+ModuleInfo "History: Fixed TTypeId.PointerType() recursing over root PointerTypeId"
+ModuleInfo "History: 1.18 [grable]"
+ModuleInfo "History: Added check for NullTypeId in TypeTagForId, also improved error message"
+ModuleInfo "History: 1.17 [grable]"
+ModuleInfo "History: Fixed missing ElementType for ArrayTypeId"
+ModuleInfo "History: 1.16 [gwron]"
+ModuleInfo "History: minor adjustments to code (cleanup)."
+ModuleInfo "History: 1.15 [brucey]"
+ModuleInfo "History: fixed _Assign not setting bbEmptyArray for Null arrays."
+ModuleInfo "History: 1.14 [grable]"
+ModuleInfo "History: fixed missing call to ReturnType() in TMethod.Invoke()"
+ModuleInfo "History: 1.13 [grable]"
+ModuleInfo "History: fixed TypeTagForId() regarding pointers"
+ModuleInfo "History: fixed _Push and _Assign regarding pointers"
+ModuleInfo "History: 1.12 [grable]"
+ModuleInfo "History: added TTypeId.ArraySlice() for slicing untyped arrays"
+ModuleInfo "History: 1.11 [grable]"
+ModuleInfo "History: refixed TMethod overrides, and added same for TFunction"
+ModuleInfo "History: 1.10 [grable]"
+ModuleInfo "History: fixed bug in FindConstant()"
+ModuleInfo "History: added TField.FieldPtr() for direct pointer to instance fields"
+ModuleInfo "History: 1.09 [grable]"
+ModuleInfo "History: fixed parsing of function pointers with spaces via ForName"
+ModuleInfo "History: 1.08 [grable]"
+ModuleInfo "History: Added type constants (TConstant and relevant methods to TTypeId)"
+ModuleInfo "History: 1.07 [grable]"
+ModuleInfo "History: Minor fixes"
+ModuleInfo "History: 1.06 [grable]"
+ModuleInfo "History: Added function pointer support (FunctionTypeId...)"
+ModuleInfo "History: Also did some reworking of TFunction/TMethod and pushed parsing of function metadata over to TypeIdForTag()"
+ModuleInfo "History: 1.05 [Otus]"
+ModuleInfo "History: Fixed TMethod overrides, Nested arrays (TTypeId.ForName)"
+ModuleInfo "History: 1.04 [grable]"
+ModuleInfo "History: Added pointer support (PointerTypeId...)"
+ModuleInfo "History: 1.03 [blitz-forum]"
+ModuleInfo "History: Added support for type functions (TFunction...)"
+
 ModuleInfo "History: 1.02 Release"
-ModuleInfo "History: Added Brucey's size fix to GetArrayElement()/SetArrayElement()."
+ModuleInfo "History: Added Brucey's size fix to GetArrayElement()/SetArrayElement()"
 ModuleInfo "History: 1.01 Release"
 ModuleInfo "History: Fixed NewArray using temp type name"
 
@@ -32,7 +71,7 @@ Function bbObjectNew:Object( class )
 Function bbObjectRegisteredTypes:Int Ptr( count Var )
 
 Function bbArrayNew1D:Object( typeTag:Byte Ptr,length )
-
+Function bbArraySlice:Object( typeTag:Byte Ptr,inarr:Object,start:Int,stop:Int )
 
 Function bbRefArrayClass()
 Function bbRefStringClass()
@@ -87,6 +126,9 @@ Function _Get:Object( p:Byte Ptr,typeId:TTypeId )
 	Case DoubleTypeId
 		Return String.FromDouble( (Double Ptr p)[0] )
 	Default
+		If typeid.ExtendsType(PointerTypeId) Or typeid.ExtendsType(FunctionTypeId) Then
+			Return String.FromInt( (Int Ptr p)[0] )
+		EndIf
 		Return bbRefGetObject( p )
 	End Select
 End Function
@@ -110,6 +152,23 @@ Function _Push:Byte Ptr( sp:Byte Ptr,typeId:TTypeId,value:Object )
 		bbRefPushObject sp,value
 		Return sp+4
 	Default
+		If typeid.ExtendsType(PointerTypeId) Then
+			If value Then
+				(Int Ptr sp)[0]=value.ToString().ToInt()
+			Else
+				(Int Ptr sp)[0]=0
+			EndIf
+			Return sp+4
+		ElseIf typeid.ExtendsType(FunctionTypeId) Then
+			If value Then
+				(Int Ptr sp)[0]=value.ToString().ToInt()
+			Else
+				(Int Ptr sp)[0]=Int Byte Ptr NullFunctionError
+			EndIf
+			Return sp+4
+		ElseIf typeId.ExtendsType(ArrayTypeId)
+			If Not value Then value = bbRefArrayNull()
+		EndIf
 		If value
 			Local c=typeId._class
 			Local t=bbRefGetObjectClass( value )
@@ -141,6 +200,23 @@ Function _Assign( p:Byte Ptr,typeId:TTypeId,value:Object )
 		If Not value value=""
 		bbRefAssignObject p,value
 	Default
+		If typeid.ExtendsType(PointerTypeId) Then
+			If value Then
+				(Int Ptr p)[0]=value.ToString().ToInt()
+			Else
+				(Int Ptr p)[0]=0
+			EndIf
+			Return
+		ElseIf typeid.ExtendsType(FunctionTypeId) Then
+			If value Then
+				(Int Ptr p)[0]=value.ToString().ToInt()
+			Else
+				(Int Ptr p)[0]=Int Byte Ptr NullFunctionError
+			EndIf
+			Return
+		ElseIf typeId.ExtendsType(ArrayTypeId)
+			If Not value Then value = bbRefArrayNull()
+		EndIf
 		If value
 			Local c=typeId._class
 			Local t=bbRefGetObjectClass( value )
@@ -148,40 +224,52 @@ Function _Assign( p:Byte Ptr,typeId:TTypeId,value:Object )
 				t=bbRefGetSuperClass( t )
 			Wend
 			If Not t Throw "ERROR"
-		Else
-			If typeId.Name().Endswith("]") Then
-				value = bbRefArrayNull()
-			EndIf
 		EndIf
 		bbRefAssignObject p,value
 	End Select
 End Function
 
-Function _Call:Object( p:Byte Ptr,typeId:TTypeId,obj:Object,args:Object[],argTypes:TTypeId[] )
-	Local q[10],sp:Byte Ptr=q
-	bbRefPushObject sp,obj
-	sp:+4
-	If typeId=LongTypeId sp:+8
-	For Local i=0 Until args.length
-		If Int Ptr(sp)>=Int Ptr(q)+8 Throw "ERROR"
-		sp=_Push( sp,argTypes[i],args[i] )
+Function _Call:Object( callableP:Byte Ptr, retTypeId:TTypeId, obj:Object=Null, args:Object[], argtypes:TTypeId[])
+	Local q:Int[10], sp:Byte Ptr = q
+
+	If obj 'method call of an instance
+		bbRefPushObject sp,obj
+		sp:+4
+	EndIf
+
+	If retTypeId = LongTypeId Then sp :+ 8
+	For Local i:Int = 0 Until args.Length
+		If Int Ptr(sp) >= Int Ptr(q)+8 Then Throw "ERROR"
+		sp = _Push( sp, argtypes[i], args[i])
 	Next
-	If Int Ptr(sp)>Int Ptr(q)+8 Throw "ERROR"
-	Select typeId
-	Case ByteTypeId,ShortTypeId,IntTypeId
-		Local f(p0,p1,p2,p3,p4,p5,p6,p7)=p
-		Return String.FromInt( f( q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7] ) )
-	Case LongTypeId
-		Throw "TODO"
-	Case FloatTypeId
-		Local f:Float(p0,p1,p2,p3,p4,p5,p6,p7)=p
-		Return String.FromFloat( f( q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7] ) )
-	Case DoubleTypeId
-		Local f:Double(p0,p1,p2,p3,p4,p5,p6,p7)=p
-		Return String.FromDouble( f( q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7] ) )
-	Default
-		Local f:Object(p0,p1,p2,p3,p4,p5,p6,p7)=p
-		Return f( q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7] )
+	If Int Ptr(sp) > Int Ptr(q)+8 Then Throw "ERROR"
+	Select retTypeId
+		Case ByteTypeId, ShortTypeId, IntTypeId
+			Local f(p0, p1, p2, p3, p4, p5, p6, p7) = callableP
+			Return String.FromInt( f( q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7] ) )
+		Case LongTypeId
+			'Throw "TODO"
+			Local f:Long(p0,p1,p2,p3,p4,p5,p6,p7) = callableP
+			Return String.FromLong( f( q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7] ) )					
+		Case FloatTypeId
+			Local f:Float(p0, p1, p2, p3, p4, p5, p6, p7) = callableP
+			Return String.FromFloat( f( q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7] ) )
+		Case DoubleTypeId
+			Local f:Double(p0, p1, p2, p3, p4, p5, p6, p7) = callableP
+			Return String.FromDouble( f( q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7] ) )
+		Default
+			If retTypeId.ExtendsType(PointerTypeId) Or retTypeId.ExtendsType(FunctionTypeId) Then
+				If Not obj 'function call
+					Local f:Int(p0, p1, p2, p3, p4, p5, p6, p7) = callableP
+					Return String.FromInt( f( q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7] ) )
+				Else 'method call
+					Local f:Byte Ptr(p0,p1,p2,p3,p4,p5,p6,p7) = callableP
+					Return String.FromInt( Int f( q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7] ) )
+				EndIf
+			Else
+				Local f:Object(p0, p1, p2, p3, p4, p5, p6, p7) = callableP
+				Return f( q[0],q[1],q[2],q[3],q[4],q[5],q[6],q[7] )
+			EndIf
 	End Select
 End Function
 
@@ -192,16 +280,32 @@ Function TypeTagForId$( id:TTypeId )
 	If id.ExtendsType( ObjectTypeId )
 		Return ":"+id.Name()
 	EndIf
+	If id.ExtendsType( PointerTypeId )
+		Local t:TTypeId = id.ElementType()
+		If t Then Return "*"+TypeTagForId(t)
+		Return "*"
+	EndIf
+	If id.ExtendsType( FunctionTypeId )
+		Local s:String
+		For Local t:TTypeId = EachIn id._argTypes
+			If s Then s :+ ","
+			s :+ TypeTagForId(t)
+		Next
+		s = "(" + s + ")"
+		If id._retType Then s :+ TypeTagForId(id._retType)
+		Return s
+	EndIf
 	Select id
-	Case ByteTypeId Return "b"
-	Case ShortTypeId Return "s"
-	Case IntTypeId Return "i"
-	Case LongTypeId Return "l"
-	Case FloatTypeId Return "f"
-	Case DoubleTypeId Return "d"
-	Case StringTypeId Return "$"
+		Case ByteTypeId Return "b"
+		Case ShortTypeId Return "s"
+		Case IntTypeId Return "i"
+		Case LongTypeId Return "l"
+		Case FloatTypeId Return "f"
+		Case DoubleTypeId Return "d"
+		Case StringTypeId Return "$"
+		Case NullTypeId Return "Null"
 	End Select
-	Throw "ERROR"
+	Throw "~q" + id.Name() + "~q was unexpected at this time"
 End Function
 
 Function TypeIdForTag:TTypeId( ty$ )
@@ -221,14 +325,78 @@ Function TypeIdForTag:TTypeId( ty$ )
 		If i<>-1 ty=ty[i+1..]
 		Return TTypeId.ForName( ty )
 	EndIf
+	If ty.StartsWith( "(" ) Then
+		Local t:String[]
+		Local idx:Int = ty.FindLast(")")
+		If idx > 0 Then
+			t = [ ty[1..idx], ty[idx+1..] ]
+		Else
+			t = [ ty[1..], "" ]
+		EndIf
+		Local retType:TTypeId=TypeIdForTag( t[1] ), argTypes:TTypeId[]
+		If t[0].length>0 Then
+			Local i,b,q$=t[0], args:TList=New TList
+			#first_loop
+			While i<q.length
+				Select q[i]
+				Case Asc( "," )
+					args.AddLast q[b..i]
+					i:+1
+					b=i
+				Case Asc( "[" )
+					i:+1
+					While i<q.length And q[i]=Asc(",")
+						i:+1
+					Wend
+				Case Asc( "(" )
+					Local level:Int = 1
+					i:+1
+					While i<q.Length
+						If q[i] = Asc(",") Then
+							If level = 0 Then Continue first_loop
+						ElseIf q[i] = Asc(")") Then
+							level :- 1
+						ElseIf q[i] = Asc("(") Then 
+							level :+ 1
+						EndIf
+						i:+1
+					Wend
+				Default
+					i:+1
+				End Select
+			Wend
+			If b < q.Length Then args.AddLast q[b..]
+			
+			argTypes=New TTypeId[args.Count()]
+
+			i=0
+			For Local s:String = EachIn args
+				argTypes[i]=TypeIdForTag( s )
+				If Not argTypes[i] Then argTypes[i] = ObjectTypeId
+				i:+1
+			Next
+		EndIf
+		If Not retType Then retType = ObjectTypeId
+		retType._functionType = Null
+		Return retType.FunctionType(argTypes)
+	EndIf
+	If ty.StartsWith( "*" ) Then
+		ty = ty[1..]
+		Local id:TTypeId = TypeIdForTag( ty )
+		If id Then
+			id._pointerType = Null
+			id = id.PointerType()
+		EndIf
+		Return id
+	EndIf
 	Select ty
-	Case "b" Return ByteTypeId
-	Case "s" Return ShortTypeId
-	Case "i" Return IntTypeId
-	Case "l" Return LongTypeId
-	Case "f" Return FloatTypeId
-	Case "d" Return DoubleTypeId
-	Case "$" Return StringTypeId
+		Case "b" Return ByteTypeId
+		Case "s" Return ShortTypeId
+		Case "i" Return IntTypeId
+		Case "l" Return LongTypeId
+		Case "f" Return FloatTypeId
+		Case "d" Return DoubleTypeId
+		Case "$" Return StringTypeId
 	End Select
 End Function
 
@@ -256,7 +424,7 @@ Function ExtractMetaData$( meta$,key$ )
 		If i<meta.length And meta[i]=Asc(" ") i:+1
 	Wend
 End Function
-
+	
 Public
 
 Rem
@@ -305,6 +473,24 @@ End Rem
 Global ArrayTypeId:TTypeId=New TTypeId.Init( "Null[]",4,bbRefArrayClass(),ObjectTypeId )
 
 Rem
+bbdoc: Primitive pointer type
+End Rem
+Global PointerTypeId:TTypeId=New TTypeId.Init( "Ptr",4 )
+
+Rem
+bbdoc: Primitive function type
+End Rem
+Global FunctionTypeId:TTypeId=New TTypeId.Init( "Null()",4 )
+
+Rem
+bbdoc: Primitive null type
+End Rem
+Global NullTypeId:TTypeId=New TTypeId.Init( "Null",4 )
+
+' finish setup of array type
+ArrayTypeId._ElementType = NullTypeId
+
+Rem
 bbdoc: Type member - field or method.
 End Rem
 Type TMember
@@ -333,6 +519,63 @@ Type TMember
 	Field _name$,_typeId:TTypeId,_meta$
 	
 End Type
+
+Rem
+bbdoc: Type constant
+EndRem
+Type TConstant Extends TMember
+	Method Init:TConstant( name:String, typeId:TTypeId, meta:String, rtti:Int)
+		_name = name
+		_typeId = typeId
+		_meta = meta
+		_rtti = Int Ptr(rtti) + 2 ' now points at string: [dd size][db data...]
+		Return Self
+	EndMethod
+
+	Rem
+	bbdoc: Get constant value
+	EndRem
+	Method GetString:String()
+		Return String.FromShorts( Short Ptr(_rtti+1), _rtti[0])
+	EndMethod
+
+	Rem
+	bbdoc: Get constant value as @Int
+	EndRem
+	Method GetInt:Int()
+		Return GetString().ToInt()
+	EndMethod
+
+	Rem
+	bbdoc: Get constant value as @Float
+	EndRem	
+	Method GetFloat:Int()
+		Return GetString().ToFloat()
+	EndMethod
+
+	Rem
+	bbdoc: Get constant value as @Long
+	EndRem	
+	Method GetLong:Int()
+		Return GetString().ToLong()
+	EndMethod
+
+	Rem
+	bbdoc: Get constant value as @Double
+	EndRem	
+	Method GetDouble:Int()
+		Return GetString().ToDouble()
+	EndMethod
+
+	Rem
+	bbdoc: Get constant value as @{Byte Ptr}
+	EndRem
+	Method GetPointer:Byte Ptr()
+		Return Byte Ptr GetString().ToInt()
+	EndMethod
+		
+	Field _rtti:Int Ptr
+EndType
 
 Rem
 bbdoc: Type field
@@ -388,6 +631,13 @@ Type TField Extends TMember
 	Method GetString$( obj:Object )
 		Return String( Get( obj ) )
 	End Method
+		
+	Rem
+	bbdoc: Get pointer field value
+	End Rem
+	Method GetPointer:Byte Ptr( obj:Object)
+		Return Byte Ptr GetString(obj).ToInt()
+	EndMethod		
 	
 	Rem
 	bbdoc: Set field value
@@ -430,6 +680,28 @@ Type TField Extends TMember
 	Method SetString( obj:Object,value$ )
 		Set obj,value
 	End Method
+		
+	Rem
+	bbdoc: Set pointer field value
+	End Rem
+	Method SetPointer( obj:Object, value:Byte Ptr)
+		SetString(obj, String.FromInt(Int value))
+	EndMethod
+
+	Rem
+	bbdoc: Get the pointer to the field of an instance
+	about: this returns a @{direct pointer to the instance field}
+	End Rem
+	Method FieldPtr:Byte Ptr( obj:Object)
+		Return bbRefFieldPtr( obj, _index)
+	EndMethod
+	
+	Rem
+	bbdoc: Invoke function pointer field
+	End Rem
+	Method Invoke:Object( obj:Object, args:Object[] = Null)
+		Return _Call( GetPointer(obj), _typeId.ReturnType(), Null, args, _typeId.ArgTypes())
+	EndMethod	
 	
 	Field _index
 	
@@ -440,13 +712,17 @@ bbdoc: Type method
 End Rem
 Type TMethod Extends TMember
 
-	Method Init:TMethod( name$,typeId:TTypeId,meta$,selfTypeId:TTypeId,index,argTypes:TTypeId[] )
+	Method Init:TMethod( name$,typeId:TTypeId,meta$,selfTypeId:TTypeId,index )
 		_name=name
 		_typeId=typeId
 		_meta=meta
 		_selfTypeId=selfTypeId
 		_index=index
-		_argTypes=argTypes
+		If _index >= 65536 Then
+			_fptr = Byte Ptr(_index)
+		Else
+			_fptr = Null
+		EndIf
 		Return Self
 	End Method
 	
@@ -454,23 +730,91 @@ Type TMethod Extends TMember
 	bbdoc: Get method arg types
 	End Rem
 	Method ArgTypes:TTypeId[]()
-		Return _argTypes
+		Return _typeId._argTypes
+	End Method
+		
+	Rem
+	bbdoc: Get method return type
+	End Rem
+	Method ReturnType:TTypeId()
+		Return _typeId._retType
+	End Method
+
+	Rem
+	bbdoc: Get method function pointer
+	endrem
+	Method FunctionPtr:Byte Ptr( obj:Object)
+		If _fptr Then Return _fptr
+		If _index < 65536 Then
+			_fptr = bbRefMethodPtr( obj ,_index)
+		EndIf
+		Return _fptr
 	End Method
 
 	Rem
 	bbdoc: Invoke method
 	End Rem
-	Method Invoke:Object( obj:Object,args:Object[] )
-		If _index<65536
-			Return _Call( bbRefMethodPtr( obj,_index ),_typeId,obj,args,_argTypes )
-		EndIf
-		Return _Call( Byte Ptr(_index),_typeId,obj,args,_argTypes )
+	Method Invoke:Object( obj:Object,args:Object[] = Null )
+		Return _Call( FunctionPtr(obj), ReturnType(), obj, args, ArgTypes() )
 	End Method
 	
-	Field _selfTypeId:TTypeId,_index,_argTypes:TTypeId[]
-
+	Field _selfTypeId:TTypeId,_index
+	Field _fptr:Byte Ptr
 End Type
 
+Rem
+bbdoc: Type function
+endrem
+Type TFunction Extends TMember
+	Method Init:TFunction(name:String, typeId:TTypeId, meta:String, selfTypeId:TTypeId, index:Int)
+		_name=name
+		_typeId=typeId
+		_meta=meta
+		_selfTypeId=selfTypeId		
+		_index=index
+		If _index >= 65536 Then
+			_fptr = Byte Ptr(_index)
+		Else
+			_fptr = Null
+		EndIf
+		Return Self
+	End Method
+
+	Rem
+	bbdoc: Get function arg types
+	End Rem
+	Method ArgTypes:TTypeId[]()
+		Return _typeId._argTypes
+	End Method
+	
+	Rem
+	bbdoc: Get function return type
+	End Rem
+	Method ReturnType:TTypeId()
+		Return _typeId._retType
+	End Method
+		
+	Rem
+	bbdoc: Get function pointer.
+	endrem
+	Method FunctionPtr:Byte Ptr( obj:Object)
+		If _fptr Then Return _fptr
+		If _index < 65536 Then
+			_fptr = bbRefMethodPtr( obj ,_index)
+		EndIf
+		Return _fptr
+	End Method
+	
+	Rem
+	bbdoc: Invoke type function
+	endrem	
+	Method Invoke:Object( obj:Object, args:Object[] = Null)
+		Return _Call( FunctionPtr(obj), ReturnType(), Null, args, ArgTypes())
+	End Method
+	
+	Field _selfTypeId:TTypeId, _fptr:Byte Ptr, _index:Int
+EndType
+	
 Rem
 bbdoc: Type id
 End Rem
@@ -518,13 +862,69 @@ Type TTypeId
 		EndIf
 		Return _arrayType
 	End Method
-	
+		
 	Rem
 	bbdoc: Get element type
 	End Rem
 	Method ElementType:TTypeId()
 		Return _elementType
 	End Method
+		
+	Rem
+	bbdoc: Get pointer type
+	End Rem
+	Method PointerType:TTypeId()
+		If Not _pointerType Then
+			_pointerType = New TTypeId.Init( _name + " Ptr", 4)
+			_pointerType._elementType = Self
+			If _super Then
+				_pointerType._super = _super.PointerType()
+				_pointerType._TypeTag = TypeTagForId(_pointerType).ToCString()
+			Else
+				_pointerType._super = PointerTypeId
+				_pointerType._TypeTag = "*".ToCString()
+			EndIf
+		EndIf
+		Return _pointerType
+	End Method
+		
+	Rem
+	bbdoc: Get function pointer type
+	End Rem
+	Method FunctionType:TTypeId( args:TTypeId[]=Null)
+		If Not _functionType Then
+			Local s:String
+			For Local t:TTypeId = EachIn args
+				If s Then s :+ ","
+				s :+ t.Name()
+			Next
+			_functionType = New TTypeId.Init( _name + "(" + s + ")", 4)
+			_functionType._retType = Self
+			_functionType._argTypes = args
+			If _super Then
+				_functionType._super = _super.FunctionType()
+			Else
+				_functionType._super = FunctionTypeId
+			EndIf
+		EndIf
+		Return _functionType
+	End Method
+		
+	Rem
+	bbdoc: Get function return type
+	End Rem
+	Method ReturnType:TTypeId()
+		If Not _retType Then Throw "TypeID is not a function type"
+		Return _retType
+	End Method
+		
+	Rem
+	bbdoc: Get function argument types
+	End Rem
+	Method ArgTypes:TTypeId[]()
+		If Not _retType Then Throw "TypeID is not a function type"
+		Return _argTypes
+	End Method		
 	
 	Rem
 	bbdoc: Determine if type extends a type
@@ -551,6 +951,14 @@ Type TTypeId
 	End Method
 	
 	Rem
+	bbdoc: Get list of constants
+	about: Only returns constants declared in this type, not in super types.
+	End Rem
+	Method Constants:TList()
+		Return _consts
+	End Method	
+	
+	Rem
 	bbdoc: Get list of fields
 	about: Only returns fields declared in this type, not in super types.
 	End Rem
@@ -567,6 +975,14 @@ Type TTypeId
 	End Method
 	
 	Rem
+	bbdoc: Get ist of functions
+	about: Only returns functions declared in this type, not in super types.
+	endrem
+	Method Functions:TList()
+		Return _functions
+	End Method	
+	
+	Rem
 	bbdoc: Find a field by name
 	about: Searchs type hierarchy for field called @name.
 	End Rem
@@ -579,6 +995,18 @@ Type TTypeId
 	End Method
 	
 	Rem
+	bbdoc: Find a constant by name
+	about: Searchs type hierarchy for constant called @name.
+	End Rem
+	Method FindConstant:TConstant( name$ )
+		name=name.ToLower()
+		For Local t:TConstant=EachIn _consts
+			If t.Name().ToLower()=name Return t
+		Next
+		If _super Return _super.FindConstant( name )
+	End Method	
+	
+	Rem
 	bbdoc: Find a method by name
 	about: Searchs type hierarchy for method called @name.
 	End Rem
@@ -588,6 +1016,31 @@ Type TTypeId
 			If t.Name().ToLower()=name Return t
 		Next
 		If _super Return _super.FindMethod( name )
+	End Method
+		
+	Rem
+	bbdoc: Find a function by name
+	about: Searches type heirarchy for function called @name
+	endrem
+	Method FindFunction:TFunction(name:String)
+		name = name.ToLower()
+		For Local t:TFunction = EachIn _functions
+			If t.Name().ToLower() = name Return t
+		Next
+		If _super Return _super.FindFunction(name)
+	End Method
+	
+	Rem
+	bbdoc: Enumerate all constants
+	about: Returns a list of all constants in type hierarchy
+	End Rem	
+	Method EnumConstants:TList( list:TList=Null )
+		If Not list list=New TList
+		If _super _super.EnumConstants list
+		For Local t:TConstant=EachIn _consts
+			list.AddLast t
+		Next
+		Return list
 	End Method
 	
 	Rem
@@ -605,17 +1058,67 @@ Type TTypeId
 	
 	Rem
 	bbdoc: Enumerate all methods
-	about: Returns a list of all methods in type hierarchy - TO DO: handle overrides!
-	End Rem	
+	about: Returns a list of all methods in type hierarchy
+	End Rem
 	Method EnumMethods:TList( list:TList=Null )
+		Function cmp_by_index:Int( a:TMethod, b:TMethod)
+			Return a._index - b._index
+		EndFunction
+		
 		If Not list list=New TList
-		If _super _super.EnumMethods list
+		If _super And _super <> Self Then _super.EnumMethods list
 		For Local t:TMethod=EachIn _methods
 			list.AddLast t
 		Next
+		'FIX: remove overridden methods
+'		list.Sort()
+'		Local prev:TMethod
+'		For Local t:TMethod = EachIn list
+'			If prev Then
+'				If (t._index - prev._index) = 0 Then list.Remove(prev)
+'			EndIf
+'			prev = t
+'		Next
+		list.Sort( True, Byte Ptr cmp_by_index)
+		Local prev:TMethod
+		For Local t:TMethod = EachIn list
+			If prev Then
+				If (t._index - prev._index) = 0 Then list.Remove(prev)
+			EndIf
+			prev = t
+		Next
+		
+		Return list
+	End Method	
+
+	Rem
+	bbdoc: Enumerate all functions
+	about: Returns a list of all functions in type hierarchy
+	End Rem
+	Method EnumFunctions:TList( list:TList=Null )
+		Function cmp_by_name:Int( a:TFunction, b:TFunction)
+			Return a.Name().Compare(b.Name())
+		EndFunction
+
+		If Not list list=New TList
+		If _super And _super <> Self Then _super.EnumFunctions list
+		For Local t:TFunction=EachIn _functions
+			list.AddLast t
+		Next
+		
+		'FIX: remove overridden functions
+		list.Sort( True, Byte Ptr cmp_by_name)
+		Local prev:TFunction
+		For Local t:TFunction = EachIn list
+			If prev Then				
+				If (t.Name().Compare(prev.Name())) = 0 Then list.Remove(prev)
+			EndIf
+			prev = t
+		Next
+
 		Return list
 	End Method
-	
+
 	Rem
 	bbdoc: Create a new array
 	End Rem
@@ -631,6 +1134,22 @@ Type TTypeId
 		Else
 			Return bbRefArrayCreate( tag, dims )
 		End If
+	End Method
+		
+	Rem
+	bbdoc: Create a new array slice from another array
+	End Rem
+	Method ArraySlice:Object( a:Object, start:Int = 0, stop:Int = -1 )
+		If Not _elementType Throw "TypeID is not an array type"
+		Local tag:Byte Ptr=_elementType._typeTag
+		If Not tag
+			tag=TypeTagForId( _elementType ).ToCString()
+			_elementType._typeTag=tag
+		EndIf
+		If stop < 0 Then
+			stop = bbRefArrayLength( a, 0)
+		EndIf
+		Return bbArraySlice( tag, a, start, stop)
 	End Method
 	
 	Rem
@@ -672,6 +1191,59 @@ Type TTypeId
 	End Rem
 	Function ForName:TTypeId( name$ )
 		_Update
+		' arrays
+		If name.EndsWith( "[]" )
+			name=name[..name.length-2].Trim()
+			Local elementType:TTypeId = ForName( name )
+			If Not elementType Then Return Null
+			Return elementType.ArrayType()
+		' pointers
+		ElseIf name.EndsWith( "Ptr" )
+			name=name[..name.length-4].Trim()
+			If Not name Then Return Null
+			Local baseType:TTypeId = ForName( name )
+			If baseType Then
+				' check for valid pointer base types
+				Select baseType
+					Case ByteTypeId, ShortTypeId, IntTypeId, LongTypeId, FloatTypeId, DoubleTypeId
+						Return baseType.PointerType()
+					Default
+						If baseType.ExtendsType(PointerTypeId) Then Return baseType.PointerType()
+				EndSelect
+			EndIf
+			Return Null
+		' function pointers
+		ElseIf name.EndsWith( ")" )
+			' check if its in the table already
+			Local t:TTypeId = TTypeId( _nameMap.ValueForKey( name.ToLower() ) )
+			If t Then Return t
+			Local i:Int = name.Find("(")
+			Local ret:TTypeId = ForName( name[..i].Trim())
+			Local typs:TTypeId[]
+			If Not ret Then ret = NullTypeId
+			If ret Then
+				Local params:String = name[i+1..name.Length-1].Trim()
+				If params Then
+					Local args:String[] = params.Split(",")
+					If args.Length >= 1 And args[0] Then
+						typs = New TTypeId[args.Length]
+						For Local i:Int = 0 Until args.Length
+							typs[i] = ForName(args[i].Trim())
+							If Not typs[i] Then typs[i] = ObjectTypeId
+						Next
+					EndIf
+				EndIf
+				ret._functionType = Null
+				Return ret.FunctionType(typs)
+			EndIf
+		Else
+			' regular type name lookup
+			Return TTypeId( _nameMap.ValueForKey( name.ToLower() ) )
+		EndIf
+	End Function	
+Rem
+	Function ForName:TTypeId( name$ )
+		_Update
 		If name.EndsWith( "]" )
 			' TODO
 			name=name[..name.length-2]
@@ -680,6 +1252,7 @@ Type TTypeId
 			Return TTypeId( _nameMap.ValueForKey( name.ToLower() ) )
 		EndIf
 	End Function
+EndRem
 
 	Rem
 	bbdoc: Get Type by object
@@ -714,8 +1287,10 @@ Type TTypeId
 		_size=size
 		_class=class
 		_super=supor
+		_consts=New TList
 		_fields=New TList
 		_methods=New TList
+		_functions=New TList
 		_nameMap.Insert _name.ToLower(),Self
 		If class _classMap.Insert New TClass.SetClass( class ),Self
 		Return Self
@@ -754,8 +1329,10 @@ Type TTypeId
 	Method _Resolve()
 		If _fields Or Not _class Return
 		
+		_consts=New TList
 		_fields=New TList
 		_methods=New TList
+		_functions=New TList
 		_super=TTypeId( _classMap.ValueForKey( New TClass.SetClass( (Int Ptr _class)[0] ) ) )
 		If Not _super _super=ObjectTypeId
 		If Not _super._derived _super._derived=New TList
@@ -776,47 +1353,30 @@ Type TTypeId
 			EndIf
 
 			Select p[0]
-			Case 3	'field
-				Local typeId:TTypeId=TypeIdForTag( ty )
-				If typeId _fields.AddLast New TField.Init( id,typeId,meta,p[3] )
-			Case 6	'method
-				Local t$[]=ty.Split( ")" )
-				Local retType:TTypeId=TypeIdForTag( t[1] )
-				If retType
-					Local argTypes:TTypeId[]
-					If t[0].length>1
-						Local i,b,q$=t[0][1..],args:TList=New TList
-						While i<q.length
-							Select q[i]
-							Case Asc( "," )
-								args.AddLast q[b..i]
-								i:+1
-								b=i
-							Case Asc( "[" )
-								i:+1
-								While i<q.length And q[i]=Asc(",")
-									i:+1
-								Wend
-							Default
-								i:+1
-							End Select
-						Wend
-						If b<q.length args.AddLast q[b..q.length]
-						
-						argTypes=New TTypeId[args.Count()]
-
-						i=0						
-						For Local arg$=EachIn args
-							argTypes[i]=TypeIdForTag( arg )
-							If Not argTypes[i] retType=Null
-							i:+1
-						Next
+				Case 1	'const
+					Local tt:TTypeId = TypeIdFortag(ty)
+					If tt Then
+						_consts.AddLast New TConstant.Init( id, tt, meta, p[3])
 					EndIf
-					If retType
-						_methods.AddLast New TMethod.Init( id,retType,meta,Self,p[3],argTypes )
+					
+				Case 3	'field
+					Local tt:TTypeId = TypeIdForTag(ty)
+					If tt Then
+						_fields.AddLast New TField.Init( id, tt, meta, p[3])
 					EndIf
-				EndIf
-			End Select
+					
+				Case 6	'method
+					Local tt:TTypeId = TypeIdForTag(ty)
+					If tt Then			
+						_methods.AddLast New TMethod.Init( id, tt, meta, Self, p[3])
+					EndIf
+					
+				Case 7	' function
+					Local tt:TTypeId = TypeIdForTag(ty)
+					If tt Then
+						_functions.AddLast New TFunction.Init(id, tt, meta, Self, p[3])
+					EndIf
+			EndSelect
 			p:+4
 		Wend
 	End Method
@@ -825,13 +1385,17 @@ Type TTypeId
 	Field _meta$
 	Field _class
 	Field _size=4
+	Field _consts:TList
 	Field _fields:TList
 	Field _methods:TList
+	Field _functions:TList
 	Field _super:TTypeId
 	Field _derived:TList
 	Field _arrayType:TTypeId
 	Field _elementType:TTypeId
 	Field _typeTag:Byte Ptr
+	Field _pointerType:TTypeId
+	Field _functionType:TTypeId, _argTypes:TTypeId[], _retType:TTypeId
 	
 	Global _count,_nameMap:TMap=New TMap,_classMap:TMap=New TMap
 	
