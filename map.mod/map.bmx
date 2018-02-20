@@ -6,12 +6,14 @@ bbdoc: Data structures/Maps
 End Rem
 Module BRL.Map
 
-ModuleInfo "Version: 1.08"
+ModuleInfo "Version: 1.09"
 ModuleInfo "Author: Mark Sibly"
 ModuleInfo "License: zlib/libpng"
 ModuleInfo "Copyright: Blitz Research Ltd"
 ModuleInfo "Modserver: BRL"
 
+ModuleInfo "History: 1.09"
+ModuleInfo "History: Added String key map type."
 ModuleInfo "History: 1.08"
 ModuleInfo "History: Added Int and Byte Ptr key map types."
 ModuleInfo "History: 1.07 Release"
@@ -30,6 +32,7 @@ ModuleInfo "History: Fixed TMap.Remove:TNode not returning node"
 
 Import "intmap.bmx"
 Import "ptrmap.bmx"
+Import "stringmap.bmx"
 
 Import "tree/*.h"
 Import "tree/tree.c"
@@ -261,9 +264,9 @@ Type TMap
 	Method Copy:TMap()
 		Local map:TMap=New TMap
 		'avoid copying an empty map (_root = nil there), else it borks "eachin"
-		if _root <> nil
+		If _root <> nil
 			map._root=_root.Copy( nil )
-		endif
+		EndIf
 		Return map
 	End Method
 	
