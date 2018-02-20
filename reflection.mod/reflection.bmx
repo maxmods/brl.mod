@@ -6,12 +6,14 @@ bbdoc: BASIC/Reflection
 End Rem
 Module BRL.Reflection
 
-ModuleInfo "Version: 1.03"
+ModuleInfo "Version: 1.04"
 ModuleInfo "Author: Mark Sibly"
 ModuleInfo "License: zlib/libpng"
 ModuleInfo "Copyright: Blitz Research Ltd"
 ModuleInfo "Modserver: BRL"
 
+ModuleInfo "History: 1.04"
+ModuleInfo "History: Cache lower case memmber names and use map lookup instead of list."
 ModuleInfo "History: 1.03"
 ModuleInfo "History: Assign bbEmptyArray for Null arrays."
 ModuleInfo "History: 1.02 Release"
@@ -315,6 +317,13 @@ Type TMember
 	Method Name$()
 		Return _name
 	End Method
+	
+	Method NameLower$()
+		If Not _nameLower Then
+			_nameLower = _name.ToLower()
+		End If
+		Return _nameLower
+	End Method
 
 	Rem
 	bbdoc: Get member type
@@ -331,6 +340,7 @@ Type TMember
 	End Method
 	
 	Field _name$,_typeId:TTypeId,_meta$
+	Field _nameLower$
 	
 End Type
 
@@ -554,7 +564,7 @@ Type TTypeId
 	bbdoc: Get list of fields
 	about: Only returns fields declared in this type, not in super types.
 	End Rem
-	Method Fields:TList()
+	Method Fields:TStringMap()
 		Return _fields
 	End Method
 	
@@ -562,7 +572,7 @@ Type TTypeId
 	bbdoc: Get list of methods
 	about: Only returns methods declared in this type, not in super types.
 	End Rem
-	Method Methods:TList()
+	Method Methods:TStringMap()
 		Return _methods
 	End Method
 	
@@ -572,9 +582,8 @@ Type TTypeId
 	End Rem
 	Method FindField:TField( name$ )
 		name=name.ToLower()
-		For Local t:TField=EachIn _fields
-			If t.Name().ToLower()=name Return t
-		Next
+		Local t:TField = TField(_fields.ValueForKey(name))
+		If t Return t
 		If _super Return _super.FindField( name )
 	End Method
 	
@@ -584,9 +593,8 @@ Type TTypeId
 	End Rem
 	Method FindMethod:TMethod( name$ )
 		name=name.ToLower()
-		For Local t:TMethod=EachIn _methods
-			If t.Name().ToLower()=name Return t
-		Next
+		Local t:TMethod = TMethod(_methods.ValueForKey(name))
+		If t Return t
 		If _super Return _super.FindMethod( name )
 	End Method
 	
@@ -597,7 +605,7 @@ Type TTypeId
 	Method EnumFields:TList( list:TList=Null )
 		If Not list list=New TList
 		If _super _super.EnumFields list
-		For Local t:TField=EachIn _fields
+		For Local t:TField=EachIn _fields.Values()
 			list.AddLast t
 		Next
 		Return list
@@ -610,7 +618,7 @@ Type TTypeId
 	Method EnumMethods:TList( list:TList=Null )
 		If Not list list=New TList
 		If _super _super.EnumMethods list
-		For Local t:TMethod=EachIn _methods
+		For Local t:TMethod=EachIn _methods.Values()
 			list.AddLast t
 		Next
 		Return list
@@ -714,8 +722,8 @@ Type TTypeId
 		_size=size
 		_class=class
 		_super=supor
-		_fields=New TList
-		_methods=New TList
+		_fields=New TStringMap
+		_methods=New TStringMap
 		_nameMap.Insert _name.ToLower(),Self
 		If class _classMap.Insert New TClass.SetClass( class ),Self
 		Return Self
@@ -754,8 +762,8 @@ Type TTypeId
 	Method _Resolve()
 		If _fields Or Not _class Return
 		
-		_fields=New TList
-		_methods=New TList
+		_fields=New TStringMap
+		_methods=New TStringMap
 		_super=TTypeId( _classMap.ValueForKey( New TClass.SetClass( (Int Ptr _class)[0] ) ) )
 		If Not _super _super=ObjectTypeId
 		If Not _super._derived _super._derived=New TList
@@ -778,7 +786,10 @@ Type TTypeId
 			Select p[0]
 			Case 3	'field
 				Local typeId:TTypeId=TypeIdForTag( ty )
-				If typeId _fields.AddLast New TField.Init( id,typeId,meta,p[3] )
+				If typeId Then
+					Local t:TField = New TField.Init( id,typeId,meta,p[3] )
+					_fields.Insert(t.NameLower(), t)
+				End If
 			Case 6	'method
 				Local t$[]=ty.Split( ")" )
 				Local retType:TTypeId=TypeIdForTag( t[1] )
@@ -813,7 +824,8 @@ Type TTypeId
 						Next
 					EndIf
 					If retType
-						_methods.AddLast New TMethod.Init( id,retType,meta,Self,p[3],argTypes )
+						Local t:TMethod = New TMethod.Init( id,retType,meta,Self,p[3],argTypes )
+						_methods.Insert(t.NameLower(), t)
 					EndIf
 				EndIf
 			End Select
@@ -825,8 +837,8 @@ Type TTypeId
 	Field _meta$
 	Field _class
 	Field _size=4
-	Field _fields:TList
-	Field _methods:TList
+	Field _fields:TStringMap
+	Field _methods:TStringMap
 	Field _super:TTypeId
 	Field _derived:TList
 	Field _arrayType:TTypeId
