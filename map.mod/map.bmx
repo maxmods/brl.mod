@@ -13,9 +13,10 @@ ModuleInfo "Copyright: Blitz Research Ltd"
 ModuleInfo "Modserver: BRL"
 
 ModuleInfo "History: 1.09"
-ModuleInfo "History: Added String key map type."
+ModuleInfo "History: Added index operator overloads to maps."
 ModuleInfo "History: 1.08"
-ModuleInfo "History: Added Int and Byte Ptr key map types."
+ModuleInfo "History: Added TStringMap."
+ModuleInfo "History: (Debug) Assertion on modification during iteration."
 ModuleInfo "History: 1.07 Release"
 ModuleInfo "History: Fixed MapKeys/MapValues functions to return enumerators"
 ModuleInfo "History: 1.06 Release"
@@ -33,10 +34,8 @@ ModuleInfo "History: Fixed TMap.Remove:TNode not returning node"
 Import "intmap.bmx"
 Import "ptrmap.bmx"
 Import "stringmap.bmx"
-
 Import "tree/*.h"
 Import "tree/tree.c"
-
 Import "map.c"
 
 Private
@@ -55,11 +54,11 @@ Type TKeyValue
 	Method Key:Object()
 		Return _key
 	End Method
-	
+
 	Method Value:Object()
 		Return _value
 	End Method
-	
+
 	'***** PRIVATE *****
 
 	Field _key:Object,_value:Object
@@ -84,7 +83,7 @@ Type TNode Extends TKeyValue
 		Wend
 		Return parent
 	End Method
-	
+
 	Method PrevNode:TNode()
 		Local node:TNode=Self
 		If node._left<>nil
@@ -101,13 +100,13 @@ Type TNode Extends TKeyValue
 		Wend
 		Return parent
 	End Method
-	
+
 	Method Clear()
 		_parent=Null
 		If _left<>nil _left.Clear
 		If _right<>nil _right.Clear
 	End Method
-	
+
 	Method Copy:TNode( parent:TNode )
 		Local t:TNode=New TNode
 		t._key=_key
@@ -118,39 +117,52 @@ Type TNode Extends TKeyValue
 		If _right<>nil t._right=_right.Copy( t )
 		Return t
 	End Method
-	
+
 	Method Key:Object()
 		Return _key
 	End Method
-	
+
 	Method Value:Object()
 		Return _value
 	End Method
 
 	'***** PRIVATE *****
-	
+
 	Field _color,_parent:TNode=nil,_left:TNode=nil,_right:TNode=nil
 
 End Type
 
 Type TNodeEnumerator
 	Method HasNext()
-		Return _node<>nil
+		Local has:Int = _node<>nil
+		If Not has Then
+			_map = Null
+		End If
+		Return has
 	End Method
-	
+
 	Method NextObject:Object()
+?ngcmod
+		Assert _expectedModCount = _map._modCount, "TMap Concurrent Modification"
+?
 		Local node:TNode=_node
 		_node=_node.NextNode()
 		Return node
 	End Method
 
 	'***** PRIVATE *****
-		
-	Field _node:TNode	
+
+	Field _node:TNode
+
+	Field _map:TMap
+	Field _expectedModCount:Int
 End Type
 
 Type TKeyEnumerator Extends TNodeEnumerator
 	Method NextObject:Object()
+?ngcmod
+		Assert _expectedModCount = _map._modCount, "TMap Concurrent Modification"
+?
 		Local node:TNode=_node
 		_node=_node.NextNode()
 		Return node._key
@@ -159,6 +171,9 @@ End Type
 
 Type TValueEnumerator Extends TNodeEnumerator
 	Method NextObject:Object()
+?ngcmod
+		Assert _expectedModCount = _map._modCount, "TMap Concurrent Modification"
+?
 		Local node:TNode=_node
 		_node=_node.NextNode()
 		Return node._value
@@ -174,6 +189,9 @@ End Type
 
 '***** PUBLIC *****
 
+Rem
+bbdoc: An key/value (Object/Object) map backed by a Red/Black tree.
+End Rem
 Type TMap
 
 ?Not Threaded
@@ -181,22 +199,37 @@ Type TMap
 		Clear
 	End Method
 ?
+	Rem
+	bbdoc: Clears the map.
+	about: Removes all keys and values.
+	End Rem
 	Method Clear()
 		If _root=nil Return
 		_root.Clear
 		_root=nil
+?ngcmod
+		_modCount :+ 1
+?
 	End Method
-	
+
+	Rem
+	bbdoc: Checks if the map is empty.
+	about: #True if @map is empty, otherwise #False.
+	End Rem
 	Method IsEmpty()
 		Return _root=nil
 	End Method
-	
+
+	Rem
+	bbdoc: Inserts a key/value pair into the map.
+	about: If the map already contains @key, its value is overwritten with @value.
+	End Rem
 	Method Insert( key:Object,value:Object )
 
 		Assert key Else "Can't insert Null key into map"
 
 		Local node:TNode=_root,parent:TNode=nil,cmp
-		
+
 		While node<>nil
 			parent=node
 			cmp=key.Compare( node._key )
@@ -209,13 +242,17 @@ Type TMap
 				Return
 			EndIf
 		Wend
-		
+
 		node=New TNode
 		node._key=key
 		node._value=value
 		node._color=RED
 		node._parent=parent
-		
+
+?ngcmod
+		_modCount :+ 1
+?
+
 		If parent=nil
 			_root=node
 			Return
@@ -225,42 +262,79 @@ Type TMap
 		Else
 			parent._left=node
 		EndIf
-		
+
 		_InsertFixup node
 	End Method
-	
+
+	Rem
+	bbdoc: Checks if the map contains @key.
+	returns: #True if the map contains @key.
+	End Rem
 	Method Contains( key:Object )
 		Return _FindNode( key )<>nil
 	End Method
 
+	Rem
+	bbdoc: Finds a value given a @key.
+	returns: The value associated with @key.
+	about: If the map does not contain @key, a #Null object is returned.
+	End Rem
 	Method ValueForKey:Object( key:Object )
 		Local node:TNode=_FindNode( key )
 		If node<>nil Return node._value
 	End Method
-	
+
+	Rem
+	bbdoc: Remove a key/value pair from the map.
+	returns: #True if @key was removed, or #False otherwise.
+	End Rem
 	Method Remove( key:Object )
 		Local node:TNode=_FindNode( key )
 		If node=nil Return 0
 		 _RemoveNode node
+?ngcmod
+		_modCount :+ 1
+?
 		Return 1
 	End Method
-	
+
+	Rem
+	bbdoc: Gets the map keys.
+	returns: An enumeration object
+	about: The object returned by #Keys can be used with #EachIn to iterate through the keys in the map.
+	End Rem
 	Method Keys:TMapEnumerator()
 		Local nodeenum:TNodeEnumerator=New TKeyEnumerator
 		nodeenum._node=_FirstNode()
 		Local mapenum:TMapEnumerator=New TMapEnumerator
 		mapenum._enumerator=nodeenum
+		nodeenum._map = Self
+?ngcmod
+		nodeenum._expectedModCount = _modCount
+?
 		Return mapenum
 	End Method
-	
+
+	Rem
+	bbdoc: Get the map values.
+	returns: An enumeration object.
+	about: The object returned by #Values can be used with #EachIn to iterate through the values in the map.
+	End Rem
 	Method Values:TMapEnumerator()
 		Local nodeenum:TNodeEnumerator=New TValueEnumerator
 		nodeenum._node=_FirstNode()
 		Local mapenum:TMapEnumerator=New TMapEnumerator
 		mapenum._enumerator=nodeenum
+		nodeenum._map = Self
+?ngcmod
+		nodeenum._expectedModCount = _modCount
+?
 		Return mapenum
 	End Method
-	
+
+	Rem
+	bbdoc: Returns a copy the contents of this map.
+	End Rem
 	Method Copy:TMap()
 		Local map:TMap=New TMap
 		'avoid copying an empty map (_root = nil there), else it borks "eachin"
@@ -269,15 +343,23 @@ Type TMap
 		EndIf
 		Return map
 	End Method
-	
+
+	Rem
+	bbdoc: Returns a node enumeration Object.
+	about: The object returned by #ObjectEnumerator can be used with #EachIn to iterate through the nodes in the map.
+	End Rem
 	Method ObjectEnumerator:TNodeEnumerator()
 		Local nodeenum:TNodeEnumerator=New TNodeEnumerator
 		nodeenum._node=_FirstNode()
+		nodeenum._map = Self
+?ngcmod
+		nodeenum._expectedModCount = _modCount
+?
 		Return nodeenum
 	End Method
-	
+
 	'***** PRIVATE *****
-	
+
 	Method _FirstNode:TNode()
 		Local node:TNode=_root
 		While node._left<>nil
@@ -285,7 +367,7 @@ Type TMap
 		Wend
 		Return node
 	End Method
-	
+
 	Method _LastNode:TNode()
 		Local node:TNode=_root
 		While node._right<>nil
@@ -293,7 +375,7 @@ Type TMap
 		Wend
 		Return node
 	End Method
-	
+
 	Method _FindNode:TNode( key:Object )
 		Local node:TNode=_root
 		While node<>nil
@@ -308,10 +390,10 @@ Type TMap
 		Wend
 		Return node
 	End Method
-	
+
 	Method _RemoveNode( node:TNode )
 		Local splice:TNode,child:TNode
-		
+
 		If node._left=nil
 			splice=node
 			child=node._right
@@ -340,10 +422,10 @@ Type TMap
 		Else
 			parent._right=child
 		EndIf
-		
+
 		If splice._color=BLACK _DeleteFixup child,parent
 	End Method
-	
+
 	Method _InsertFixup( node:TNode )
 		While node._parent._color=RED And node._parent._parent<>nil
 			If node._parent=node._parent._parent._left
@@ -382,7 +464,7 @@ Type TMap
 		Wend
 		_root._color=BLACK
 	End Method
-	
+
 	Method _RotateLeft( node:TNode )
 		Local child:TNode=node._right
 		node._right=child._left
@@ -402,7 +484,7 @@ Type TMap
 		child._left=node
 		node._parent=child
 	End Method
-	
+
 	Method _RotateRight( node:TNode )
 		Local child:TNode=node._left
 		node._left=child._right
@@ -422,12 +504,12 @@ Type TMap
 		child._right=node
 		node._parent=child
 	End Method
-	
+
 	Method _DeleteFixup( node:TNode,parent:TNode )
-	
+
 		While node<>_root And node._color=BLACK
 			If node=parent._left
-			
+
 				Local sib:TNode=parent._right
 
 				If sib._color=RED
@@ -436,7 +518,7 @@ Type TMap
 					_RotateLeft parent
 					sib=parent._right
 				EndIf
-				
+
 				If sib._left._color=BLACK And sib._right._color=BLACK
 					sib._color=RED
 					node=parent
@@ -454,16 +536,16 @@ Type TMap
 					_RotateLeft parent
 					node=_root
 				EndIf
-			Else	
+			Else
 				Local sib:TNode=parent._left
-				
+
 				If sib._color=RED
 					sib._color=BLACK
 					parent._color=RED
 					_RotateRight parent
 					sib=parent._left
 				EndIf
-				
+
 				If sib._right._color=BLACK And sib._left._color=BLACK
 					sib._color=RED
 					node=parent
@@ -485,15 +567,18 @@ Type TMap
 		Wend
 		node._color=BLACK
 	End Method
-	
+
 	Const RED=-1,BLACK=1
-	
+
 	Field _root:TNode=nil
-	
+
+?ngcmod
+	Field _modCount:Int
+?
 End Type
 
 Rem
-bbdoc: Create a map
+bbdoc: Creates a map
 returns: A new map object
 End Rem
 Function CreateMap:TMap()
@@ -501,7 +586,7 @@ Function CreateMap:TMap()
 End Function
 
 Rem
-bbdoc: Clear a map
+bbdoc: Clears a map
 about:
 #ClearMap removes all keys and values from @map
 End Rem
@@ -510,7 +595,7 @@ Function ClearMap( map:TMap )
 End Function
 
 Rem
-bbdoc: Check if a map is empty
+bbdoc: Checks if a map is empty
 returns: True if @map is empty, otherwise false
 End Rem
 Function MapIsEmpty( map:TMap )
@@ -518,16 +603,16 @@ Function MapIsEmpty( map:TMap )
 End Function
 
 Rem
-bbdoc: Insert a key/value pair into a map
+bbdoc: Inserts a key/value pair into a map
 about:
-If @map already contained @key, it's value is overwritten with @value. 
+If @map already contained @key, it's value is overwritten with @value.
 End Rem
 Function MapInsert( map:TMap,key:Object,value:Object )
 	map.Insert key,value
 End Function
 
 Rem
-bbdoc: Find a value given a key
+bbdoc: Finds a value given a key
 returns: The value associated with @key
 about:
 If @map does not contain @key, a #Null object is returned.
@@ -537,7 +622,7 @@ Function MapValueForKey:Object( map:TMap,key:Object )
 End Function
 
 Rem
-bbdoc: Check if a map contains a key
+bbdoc: Checks if a map contains a key
 returns: True if @map contains @key
 End Rem
 Function MapContains( map:TMap,key:Object )
@@ -545,17 +630,17 @@ Function MapContains( map:TMap,key:Object )
 End Function
 
 Rem
-bbdoc: Remove a key/value pair from a map
+bbdoc: Removes a key/value pair from a map
 End Rem
 Function MapRemove( map:TMap,key:Object )
 	map.Remove key
 End Function
 
 Rem
-bbdoc: Get map keys
+bbdoc: Gets map keys
 returns: An iterator object
 about:
-The object returned by #MapKeys can be used with #EachIn to iterate through 
+The object returned by #MapKeys can be used with #EachIn to iterate through
 the keys in @map.
 End Rem
 Function MapKeys:TMapEnumerator( map:TMap )
@@ -563,10 +648,10 @@ Function MapKeys:TMapEnumerator( map:TMap )
 End Function
 
 Rem
-bbdoc: Get map values
+bbdoc: Gets map values
 returns: An iterator object
 about:
-The object returned by #MapValues can be used with #EachIn to iterate through 
+The object returned by #MapValues can be used with #EachIn to iterate through
 the values in @map.
 End Rem
 Function MapValues:TMapEnumerator( map:TMap )
@@ -574,9 +659,10 @@ Function MapValues:TMapEnumerator( map:TMap )
 End Function
 
 Rem
-bbdoc: Copy a map
+bbdoc: Copies a map
 returns: A copy of @map
 End Rem
 Function CopyMap:TMap( map:TMap )
 	Return map.Copy()
 End Function
+
