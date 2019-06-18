@@ -1,5 +1,4 @@
-
-Strict
+SuperStrict
 
 Rem
 bbdoc: Graphics/BMP loader
@@ -32,10 +31,10 @@ Type TPixmapLoaderBMP Extends TPixmapLoader
 				
 		Local	line:Int[],palette:Int[],pix:Byte[],buf:Byte[64]
 		Local	pixmap:TPixmap
-		Local	hsize,hoffset,pad
-		Local	size,width,height
-		Local	planes,bits,compression,isize,xpels,ypels,cols,inuse
-		Local	w,x,y,c0,c1,p
+		Local	hsize:Int,hoffset:Int,pad:Int
+		Local	size:Int,width:Int,height:Int
+		Local	planes:Int,bits:Int,compression:Int,isize:Int,xpels:Int,ypels:Int,COLS:Int,inuse:Int
+		Local	w:Int,x:Int,y:Int,c0:Int,c1:Int,p:Int
 
 		If stream.ReadBytes( buf,2 )=2
 			If buf[0]=Asc("B") And buf[1]=Asc("M")			
@@ -51,10 +50,10 @@ Type TPixmapLoaderBMP Extends TPixmapLoader
 				isize=ReadInt(stream)
 				xpels=ReadInt(stream)
 				ypels=ReadInt(stream)
-				cols=ReadInt(stream)
+				COLS=ReadInt(stream)
 				inuse=ReadInt(stream)
 				hoffset:-54
-				If Not cols cols=1 Shl bits
+				If Not COLS COLS=1 Shl bits
 				If bits=32
 					pixmap=TPixmap.Create( width,height,PF_BGRA8888 )
 				Else
@@ -80,7 +79,7 @@ Type TPixmapLoaderBMP Extends TPixmapLoader
 					Case 4
 						palette=New Int[16]
 						line=New Int[width]
-						stream.ReadBytes(palette,cols*4)
+						stream.ReadBytes(palette,COLS*4)
 						w=(width+1)/2
 						w=(w+3)&$fffc
 						pix=New Byte[w]
@@ -95,7 +94,7 @@ Type TPixmapLoaderBMP Extends TPixmapLoader
 					Case 8
 						palette=New Int[256]
 						line=New Int[width]
-						stream.ReadBytes(palette,cols*4)
+						stream.ReadBytes(palette,COLS*4)
 						w=(width+3)&$fffc
 						pix=New Byte[w]
 						For y=height-1 To 0 Step -1
