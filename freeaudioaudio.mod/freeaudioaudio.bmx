@@ -40,46 +40,46 @@ Import Pub.DirectX
 
 Private
 
-Const CLOG=False
+Const CLOG:Int=False
 
 Public
 
 Type TFreeAudioSound Extends TSound
 
-	Field fa_sound
+	Field fa_sound:Byte Ptr
 	
 	Method Delete()
 		fa_FreeSound fa_sound
-		If CLOG WriteStdout "Deleted FreeAudio sound "+fa_sound+"~n"
+		If CLOG WriteStdout "Deleted FreeAudio sound "+Long(fa_sound)+"~n"
 	End Method
 
 	Method Play:TFreeAudioChannel( alloced_channel:TChannel )
-		Local channel:TFreeAudioChannel,fa_channel
+		Local channel:TFreeAudioChannel,fa_channel:Int
 		If alloced_channel
 			channel=TFreeAudioChannel( alloced_channel )
-			If Not channel Return
+			If Not channel Return Null
 			fa_channel=channel.fa_channel
 		EndIf		
 		fa_channel=fa_PlaySound(fa_sound,False,fa_channel)
-		If Not fa_channel Return
+		If Not fa_channel Return Null
 		If channel And channel.fa_channel=fa_channel Return channel
 		Return TFreeAudioChannel.CreateWithChannel( fa_channel )
 	End Method
 	
 	Method Cue:TFreeAudioChannel( alloced_channel:TChannel )
-		Local channel:TFreeAudioChannel,fa_channel
+		Local channel:TFreeAudioChannel,fa_channel:Int
 		If alloced_channel
 			channel=TFreeAudioChannel( alloced_channel )
-			If Not channel Return
+			If Not channel Return Null
 			fa_channel=channel.fa_channel
 		EndIf
 		fa_channel=fa_PlaySound( fa_sound,True,fa_channel )
-		If Not fa_channel Return
+		If Not fa_channel Return Null
 		If channel And channel.fa_channel=fa_channel Return channel
 		Return TFreeAudioChannel.CreateWithChannel( fa_channel )
 	End Method
 
-	Function CreateWithSound:TFreeAudioSound( fa_sound,src:TAudioSample )
+	Function CreateWithSound:TFreeAudioSound( fa_sound:Byte Ptr,src:TAudioSample )
 		Local t:TFreeAudioSound=New TFreeAudioSound
 		t.fa_sound=fa_sound
 '		t.src=src
@@ -90,7 +90,7 @@ End Type
 
 Type TFreeAudioChannel Extends TChannel
 
-	Field fa_channel
+	Field fa_channel:Int
 	
 	Method Delete()
 		If fa_channel fa_FreeChannel fa_channel
@@ -121,19 +121,19 @@ Type TFreeAudioChannel Extends TChannel
 		fa_SetChannelRate fa_channel,rate
 	End Method
 	
-	Method Playing()
-		Local status=fa_ChannelStatus( fa_channel ) 
+	Method Playing:Int()
+		Local status:Int=fa_ChannelStatus( fa_channel ) 
 		If status=FA_CHANNELSTATUS_FREE Return False
 		If status&FA_CHANNELSTATUS_STOPPED Return False
 		If status&FA_CHANNELSTATUS_PAUSED Return False
 		Return True
 	End Method
 	
-	Method Position()
+	Method Position:Int()
 		Return fa_ChannelPosition( fa_channel )
 	End Method
 	
-	Function CreateWithChannel:TFreeAudioChannel( fa_channel )
+	Function CreateWithChannel:TFreeAudioChannel( fa_channel:Int )
 		Local t:TFreeAudioChannel=New TFreeAudioChannel
 		t.fa_channel=fa_channel
 		Return t
@@ -150,7 +150,7 @@ Type TFreeAudioAudioDriver Extends TAudioDriver
 	Method Startup()
 		If _mode<>-1 Return fa_Init( _mode )<>-1
 		If fa_Init( 0 )<>-1 Return True
-?Win32
+?Not MacOS
 		Return fa_Init( 1 )<>-1
 ?
 	End Method
@@ -159,8 +159,8 @@ Type TFreeAudioAudioDriver Extends TAudioDriver
 		fa_Close
 	End Method
 
-	Method CreateSound:TFreeAudioSound( sample:TAudioSample,flags )
-		Local channels,bits
+	Method CreateSound:TFreeAudioSound( sample:TAudioSample,flags:Int )
+		Local channels:Int,bits:Int
 
 		Select sample.format
 ?BigEndian
@@ -175,34 +175,36 @@ Type TFreeAudioAudioDriver Extends TAudioDriver
 			sample=sample.Convert(SF_STEREO16LE)
 ?
 		End Select
-		Local loop_flag
+		Local loop_flag:Int
 		If (flags & 1) loop_flag=-1
 		channels=ChannelsPerSample[sample.format]
-		If Not channels Return
+		If Not channels Return Null
 		bits=8*BytesPerSample[sample.format]/channels
-		Local fa_sound=fa_CreateSound( sample.length,bits,channels,sample.hertz,sample.samples,loop_flag )
-		If CLOG WriteStdout "Generated FreeAudio sound "+fa_sound+"~n"
+		Local fa_sound:Byte Ptr=fa_CreateSound( sample.length,bits,channels,sample.hertz,sample.samples,loop_flag )
+		If CLOG WriteStdout "Generated FreeAudio sound "+Long(fa_sound)+"~n"
 		Return TFreeAudioSound.CreateWithSound( fa_sound,sample )
 	End Method
 	
 	Method AllocChannel:TFreeAudioChannel()
-		Local fa_channel=fa_AllocChannel()
+		Local fa_channel:Int=fa_AllocChannel()
 		If fa_channel Return TFreeAudioChannel.CreateWithChannel( fa_channel )
 	End Method
 		
-	Function Create:TFreeAudioAudioDriver( name$,mode )
+	Function Create:TFreeAudioAudioDriver( name$,mode:Int )
 		Local t:TFreeAudioAudioDriver=New TFreeAudioAudioDriver
 		t._name=name
 		t._mode=mode
 		Return t
 	End Function
 	
-	Field _name$,_mode
+	Field _name$,_mode:Int
 	
 End Type
 
 ?Win32
-If DirectSoundCreate TFreeAudioAudioDriver.Create "FreeAudio DirectSound",1
+If DirectSoundCreate 
+	TFreeAudioAudioDriver.Create "FreeAudio DirectSound",1
+EndIf
 TFreeAudioAudioDriver.Create "FreeAudio Multimedia",0
 ?MacOS
 TFreeAudioAudioDriver.Create "FreeAudio CoreAudio",0
