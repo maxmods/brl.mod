@@ -1,17 +1,19 @@
 
-Strict
+SuperStrict
 
 Rem
 bbdoc: System/StandardIO
 End Rem
 Module BRL.StandardIO
 
-ModuleInfo "Version: 1.06"
+ModuleInfo "Version: 1.07"
 ModuleInfo "Author: Mark Sibly"
 ModuleInfo "License: zlib/libpng"
 ModuleInfo "Copyright: Blitz Research Ltd"
 ModuleInfo "Modserver: BRL"
 
+ModuleInfo "History: 1.07"
+ModuleInfo "History: Module is now SuperStrict"
 ModuleInfo "History: 1.06"
 ModuleInfo "History: Added Eof() method to TCStandardIO"
 ModuleInfo "History: 1.05 Release"
@@ -30,11 +32,11 @@ Type TCStandardIO Extends TStream
 		fflush_ stdout_
 	End Method
 
-	Method Read( buf:Byte Ptr,count )
+	Method Read:Int( buf:Byte Ptr,count:Int )
 		Return fread_( buf,1,count,stdin_ )
 	End Method
 
-	Method Write( buf:Byte Ptr,count )
+	Method Write:Int( buf:Byte Ptr,count:Int )
 		Return fwrite_( buf,1,count,stdout_ )
 	End Method
 

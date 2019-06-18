@@ -6,14 +6,16 @@ bbdoc: User input/Polled input
 End Rem
 Module BRL.PolledInput
 
-ModuleInfo "Version: 1.02"
+ModuleInfo "Version: 1.03"
 ModuleInfo "Author: Mark Sibly, Simon Armstrong"
 ModuleInfo "License: zlib/libpng"
 ModuleInfo "Copyright: Blitz Research Ltd"
 ModuleInfo "Modserver: BRL"
 
-ModuleInfo "History: 1.02"
+ModuleInfo "History: 1.03"
 ModuleInfo "History: Improved Win32 KeyDown handling."
+ModuleInfo "History: 1.02"
+ModuleInfo "History: Added SetAutoPoll() function."
 ModuleInfo "History: 1.01 Release"
 ModuleInfo "History: Fixed charQueue bug"
 
@@ -71,7 +73,7 @@ Function Hook:Object( id,data:Object,context:Object )
 		FlushMouse
 		suspended=True
 	Case EVENT_APPRESUME
-		FlushKeys
+		FlushKeys(False)
 		FlushMouse
 		suspended=False
 	Case EVENT_APPTERMINATE
@@ -181,14 +183,20 @@ about:
 #FlushKeys resets the state of all keys to 'off', and resets the character queue
 used by #GetChar.
 End Rem
-Function FlushKeys()
+Function FlushKeys(resetStates:Int = True)
 	PollSystem
 	charGet=0
 	charPut=0
-	For Local i=0 Until 256
-		keyStates[i]=0
-		keyHits[i]=0
-	Next
+	If resetStates Then
+		For Local i=0 Until 256
+			keyStates[i]=0
+			keyHits[i]=0
+		Next
+	Else
+		For Local i=0 Until 256
+			keyHits[i]=0
+		Next
+	End If
 End Function
 
 Rem
