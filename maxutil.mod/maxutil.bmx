@@ -105,13 +105,9 @@ Function MinGWPath:String()
 		' to compile for both, requires two separate MinGW installations. Check against
 		' CPU target based dir first, before working through the fallbacks.
 		
-		Local cpuMinGW:String
-		
-?win32x86
-		cpuMinGW  ="/MinGW32x86"
-?win32x64
-		cpuMinGW = "/MinGW32x64"
-?win32
+		'for legacy BlitzMax we default to x86
+		Local cpuMinGW:String = "MinGW32x86"
+
 		path = BlitzMaxPath() + cpuMinGW + "/bin"
 		If FileType(path) = FILETYPE_DIR Then
 			' bin dir exists, go with that
