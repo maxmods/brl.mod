@@ -6,12 +6,16 @@ bbdoc: Events/Event queue
 End Rem
 Module BRL.EventQueue
 
-ModuleInfo "Version: 1.01"
-ModuleInfo "Author: Mark Sibly"
+ModuleInfo "Version: 1.03"
+ModuleInfo "Author: Mark Sibly, Bruce A Henderson"
 ModuleInfo "License: zlib/libpng"
 ModuleInfo "Copyright: Blitz Research Ltd"
 ModuleInfo "Modserver: BRL"
 
+ModuleInfo "History: 1.03"
+ModuleInfo "History: Module is now SuperStrict"
+ModuleInfo "History: 1.02"
+ModuleInfo "History: Reuse TEvent objects."
 ModuleInfo "History: 1.01 Release"
 ModuleInfo "History: Fixed CurrentEvent being retained in queue array"
 ModuleInfo "History: 1.00 Release"
@@ -22,13 +26,13 @@ Import BRL.System
 
 Private
 
-Const QUEUESIZE=256
-Const QUEUEMASK=QUEUESIZE-1
-Global queue:TEvent[QUEUESIZE],queue_put,queue_get
+Const QUEUESIZE:Int=256
+Const QUEUEMASK:Int=QUEUESIZE-1
+Global queue:TEvent[QUEUESIZE],queue_put:Int,queue_get:Int
 
-Function Hook:Object( id,data:Object,context:Object )
+Function Hook:Object( id:Int,data:Object,context:Object )
 	Local ev:TEvent=TEvent( data )
-	If Not ev Return
+	If Not ev Return Null
 	
 	Select ev.id
 	Case EVENT_WINDOWMOVE,EVENT_WINDOWSIZE,EVENT_TIMERTICK,EVENT_GADGETACTION
@@ -78,7 +82,7 @@ global variable.
 
 If there are no events in the event queue, #PollEvent returns 0.
 End Rem
-Function PollEvent()
+Function PollEvent:Int()
 	If queue_get=queue_put
 		PollSystem
 		If queue_get=queue_put
@@ -87,7 +91,6 @@ Function PollEvent()
 		EndIf
 	EndIf
 	CurrentEvent=queue[queue_get & QUEUEMASK]
-	queue[queue_get & QUEUEMASK]=Null
 	queue_get:+1
 	Return CurrentEvent.id
 End Function
@@ -102,12 +105,11 @@ global variable.
 If there are no events in the event queue, #WaitEvent halts program execution until
 an event is available.
 End Rem
-Function WaitEvent()
+Function WaitEvent:Int()
 	While queue_get=queue_put
 		WaitSystem
 	Wend
 	CurrentEvent=queue[queue_get & QUEUEMASK]
-	queue[queue_get & QUEUEMASK]=Null
 	queue_get:+1
 	Return CurrentEvent.id
 End Function
@@ -122,9 +124,9 @@ queue, the existing event will be updated instead of @event
 being added to the event queue. This can be useful to prevent high frequency
 events such as timer events from flooding the event queue.
 End Rem
-Function PostEvent( event:TEvent,update=False )
+Function PostEvent( event:TEvent,update:Int=False )
 	If update
-		Local i=queue_get
+		Local i:Int=queue_get
 		While i<>queue_put
 			Local t:TEvent=queue[i & QUEUEMASK ]
 			If t.id=event.id And t.source=event.source
@@ -139,7 +141,18 @@ Function PostEvent( event:TEvent,update=False )
 		Wend
 	EndIf
 	If queue_put-queue_get=QUEUESIZE Return
-	queue[queue_put & QUEUEMASK]=event
+	Local q:TEvent = queue[queue_put & QUEUEMASK]
+	If Not q Then
+		q = New TEvent
+		queue[queue_put & QUEUEMASK] = q
+	End If
+	q.id = event.id
+	q.source = event.source
+	q.data=event.data
+	q.mods=event.mods
+	q.x=event.x
+	q.y=event.y
+	q.extra=event.extra
 	queue_put:+1
 End Function
 
@@ -147,7 +160,7 @@ Rem
 bbdoc: Get current event id
 returns: The @id field of the #CurrentEvent global variable
 EndRem
-Function EventID()
+Function EventID:Int()
 	Return CurrentEvent.id
 End Function
 
@@ -155,7 +168,7 @@ Rem
 bbdoc: Get current event data
 returns: The @data field of the #CurrentEvent global variable
 EndRem
-Function EventData()
+Function EventData:Int()
 	Return CurrentEvent.data
 End Function
 
@@ -163,7 +176,7 @@ Rem
 bbdoc: Get current event modifiers
 returns: The @mods field of the #CurrentEvent global variable
 EndRem
-Function EventMods()
+Function EventMods:Int()
 	Return CurrentEvent.mods
 End Function
 
@@ -171,7 +184,7 @@ Rem
 bbdoc: Get current event x value
 returns: The @x field of the #CurrentEvent global variable
 EndRem
-Function EventX()
+Function EventX:Int()
 	Return CurrentEvent.x
 End Function
 
@@ -179,7 +192,7 @@ Rem
 bbdoc: Get current event y value
 returns: The @y field of the #CurrentEvent global variable
 EndRem
-Function EventY()
+Function EventY:Int()
 	Return CurrentEvent.y
 End Function
 
@@ -211,6 +224,6 @@ Rem
 bbdoc: Get current event source object handle
 returns: The @source field of the #CurrentEvent global variable converted to an integer handle
 EndRem
-Function EventSourceHandle()
+Function EventSourceHandle:Int()
 	Return HandleFromObject( CurrentEvent.source )
 End Function

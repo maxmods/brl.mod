@@ -95,7 +95,7 @@ Type TIO
 	bbdoc: Get position of seekable stream
 	returns: Stream position as a byte offset, or -1 if stream is not seekable
 	End Rem
-	Method Pos()
+	Method Pos:Int()
 		Return -1
 	End Method
 
@@ -103,7 +103,7 @@ Type TIO
 	bbdoc: Get size of seekable stream
 	returns: Size, in bytes, of seekable stream, or 0 if stream is not seekable
 	End Rem
- 	Method Size()
+ 	Method Size:Int()
 		Return 0
 	End Method
 
@@ -111,7 +111,7 @@ Type TIO
 	bbdoc: Seek to position in seekable stream
 	returns: New stream position, or -1 if stream is not seekable
 	End Rem
-	Method Seek( pos )
+	Method Seek:Int( pos )
 		Return -1
 	End Method
 
@@ -140,7 +140,7 @@ Type TIO
 	
 	If this method returns 0, the stream has reached end of file.
 	End Rem
-	Method Read( buf:Byte Ptr,count )
+	Method Read:Int( buf:Byte Ptr,count:Int )
 		RuntimeError "Stream is not readable"
 		Return 0
 	End Method
@@ -154,7 +154,7 @@ Type TIO
 	
 	If this method returns 0, the stream has reached end of file.
 	End Rem
-	Method Write( buf:Byte Ptr,count )
+	Method Write:Int( buf:Byte Ptr,count:Int )
 		RuntimeError "Stream is not writeable"
 		Return 0
 	End Method
@@ -185,10 +185,10 @@ Type TStream Extends TIO
 	If @count bytes were not successfully read, a #TStreamReadException is thrown. This typically
 	occurs due to end of file.
 	End Rem
-	Method ReadBytes( buf:Byte Ptr,count )
-		Local t=count
+	Method ReadBytes:Int( buf:Byte Ptr,count:Int )
+		Local t:Int=count
 		While count>0
-			Local n=Read( buf,count )
+			Local n:Int=Read( buf,count )
 			If Not n Throw New TStreamReadException
 			count:-n
 			buf:+n
@@ -204,10 +204,10 @@ Type TStream Extends TIO
 	If @count bytes were not successfully written, a #TStreamWriteException is thrown. This typically
 	occurs due to end of file.
 	End Rem
-	Method WriteBytes( buf:Byte Ptr,count )
-		Local t=count
+	Method WriteBytes:Int( buf:Byte Ptr,count:Int )
+		Local t:Int=count
 		While count>0
-			Local n=Write( buf,count )
+			Local n:Int=Write( buf,count )
 			If Not n Throw New TStreamWriteException
 			count:-n
 			buf:+n
@@ -223,11 +223,11 @@ Type TStream Extends TIO
 	If @count bytes were not successfully read, a #TStreamReadException is thrown. This typically
 	occurs due to end of file.
 	End Rem
-	Method SkipBytes( count )
-		Local t=count
+	Method SkipBytes:Int( count:Int )
+		Local t:Int=count
 		Local buf:Byte[1024]
 		While count>0
-			Local n=Read( buf,Min(count,buf.length) )
+			Local n:Int=Read( buf,Min(count,buf.length) )
 			If Not n Throw New TStreamReadException
 			count:-n
 		Wend
@@ -240,7 +240,7 @@ Type TStream Extends TIO
 	about:
 	If a value could not be read (possibly due to end of file), a #TStreamReadException is thrown.
 	End Rem
-	Method ReadByte()
+	Method ReadByte:Int()
 		Local n:Byte
 		ReadBytes Varptr n,1
 		Return n
@@ -251,7 +251,7 @@ Type TStream Extends TIO
 	about:
 	If the value could not be written (possibly due to end of file), a #TStreamWriteException is thrown.
 	End Rem
-	Method WriteByte( n )
+	Method WriteByte( n:Int )
 		Local q:Byte=n
 		WriteBytes Varptr q,1
 	End Method
@@ -262,7 +262,7 @@ Type TStream Extends TIO
 	about:
 	If a value could not be read (possibly due to end of file), a #TStreamReadException is thrown.
 	End Rem
-	Method ReadShort()
+	Method ReadShort:Int()
 		Local n:Short
 		ReadBytes Varptr n,2
 		Return n
@@ -273,7 +273,7 @@ Type TStream Extends TIO
 	about:
 	If the value could not be written (possibly due to end of file), a #TStreamWriteException is thrown.
 	End Rem
-	Method WriteShort( n )
+	Method WriteShort( n:Int )
 		Local q:Short=n
 		WriteBytes Varptr q,2
 	End Method
@@ -284,8 +284,8 @@ Type TStream Extends TIO
 	about:
 	If a value could not be read (possibly due to end of file), a #TStreamReadException is thrown.
 	End Rem
-	Method ReadInt()
-		Local n
+	Method ReadInt:Int()
+		Local n:Int
 		ReadBytes Varptr n,4
 		Return n
 	End Method
@@ -295,7 +295,7 @@ Type TStream Extends TIO
 	about:
 	If the value could not be written (possibly due to end of file), a #TStreamWriteException is thrown.
 	End Rem
-	Method WriteInt( n )
+	Method WriteInt( n:Int )
 		Local q:Int=n
 		WriteBytes Varptr q,4
 	End Method
@@ -378,7 +378,7 @@ Type TStream Extends TIO
 	or null character.
 	End Rem
 	Method ReadLine$()
-		Local buf:Byte[1024],sz
+		Local buf:Byte[1024],sz:Int
 		Repeat
 			Local ch:Byte
 			If Read( Varptr ch,1 )<>1 Or ch=0 Or ch=10 Exit
@@ -396,9 +396,9 @@ Type TStream Extends TIO
 	about: A sequence of bytes is written to the stream (one for each character in @str)
 	followed by the line terminating sequence "~r~n".
 	End Rem
-	Method WriteLine( str$ )
+	Method WriteLine:Int( str$ )
 		Local buf:Byte Ptr=str.ToCString()
-		Local ok=Write( buf,str.length )=str.length And Write( [13:Byte,10:Byte],2 )=2
+		Local ok:Int=Write( buf,str.length )=str.length And Write( [13:Byte,10:Byte],2 )=2
 		MemFree buf
 		Return ok
 	End Method
@@ -409,7 +409,7 @@ Type TStream Extends TIO
 	about:
 	A #TStreamReadException is thrown if not all bytes could be read.
 	End Rem
-	Method ReadString$( length )
+	Method ReadString$( length:Int )
 		Assert length>=0 Else "Illegal String length"
 		Local buf:Byte[length]
 		Readbytes buf,length
@@ -462,19 +462,19 @@ Type TStreamWrapper Extends TStream
 		_stream=stream
 	End Method
 
-	Method Eof()
+	Method Eof:Int()
 		Return _stream.Eof()
 	End Method
 
-	Method Pos()
+	Method Pos:Int()
 		Return _stream.Pos()
 	End Method
 
-	Method Size()
+	Method Size:Int()
 		Return _stream.Size()
 	End Method
 	
-	Method Seek( pos )
+	Method Seek:Int( pos:Int )
 		Return _stream.Seek( pos )
 	End Method
 
@@ -483,30 +483,33 @@ Type TStreamWrapper Extends TStream
 	End Method
 
 	Method Close()
-		_stream.Close
+		If _stream Then
+			_stream.Close
+			_stream = Null
+		End If
 	End Method
 
-	Method Read( buf:Byte Ptr,count )
+	Method Read:Int( buf:Byte Ptr,count:Int )
 		Return _stream.Read( buf,count )
 	End Method
 
-	Method Write( buf:Byte Ptr,count )
+	Method Write:Int( buf:Byte Ptr,count:Int )
 		Return _stream.Write( buf,count )
 	End Method
 	
-	Method ReadByte()
+	Method ReadByte:Int()
 		Return _stream.ReadByte()
 	End Method
 	
-	Method WriteByte( n )
+	Method WriteByte( n:Int )
 		_stream.WriteByte n
 	End Method
 	
-	Method ReadShort()
+	Method ReadShort:Int()
 		Return _stream.ReadShort()
 	End Method
 	
-	Method WriteShort( n )
+	Method WriteShort( n:Int )
 		_stream.WriteShort n
 	End Method
 	
@@ -542,7 +545,7 @@ Type TStreamWrapper Extends TStream
 		Return _stream.WriteLine( t )
 	End Method
 	
-	Method ReadString$( n )
+	Method ReadString$( n:Int )
 		Return _stream.ReadString( n )
 	End Method
 	
@@ -580,27 +583,27 @@ about:
 End Rem
 Type TCStream Extends TStream
 
-	Const MODE_READ=1
-	Const MODE_WRITE=2
+	Const MODE_READ:Int=1
+	Const MODE_WRITE:Int=2
 	
-	Field _pos,_size,_cstream,_mode
+	Field _pos:Int,_size:Int,_cstream:Int,_mode:Int
 
-	Method Pos()
+	Method Pos:Int()
 		Return _pos
 	End Method
 
-	Method Size()
+	Method Size:Int()
 		Return _size
 	End Method
 
-	Method Seek( pos )
+	Method Seek:Int( pos:Int )
 		Assert _cstream Else "Attempt to seek closed stream"
 		fseek_ _cstream,pos,SEEK_SET_
 		_pos=ftell_( _cstream )
 		Return _pos
 	End Method
 
-	Method Read( buf:Byte Ptr,count )
+	Method Read:Int( buf:Byte Ptr,count:Int )
 		Assert _cstream Else "Attempt to read from closed stream"
 		Assert _mode & MODE_READ Else "Attempt to read from write-only stream"
 		count=fread_( buf,1,count,_cstream )	
@@ -608,7 +611,7 @@ Type TCStream Extends TStream
 		Return count
 	End Method
 
-	Method Write( buf:Byte Ptr,count )
+	Method Write:Int( buf:Byte Ptr,count:Int )
 		Assert _cstream Else "Attempt to write to closed stream"
 		Assert _mode & MODE_WRITE Else "Attempt to write to read-only stream"
 		count=fwrite_( buf,1,count,_cstream )
@@ -637,8 +640,8 @@ Type TCStream Extends TStream
 	Rem
 	bbdoc: Create a TCStream from a 'C' filename
 	End Rem
-	Function OpenFile:TCStream( path$,readable,writeable )
-		Local mode$,_mode
+	Function OpenFile:TCStream( path$,readable:Int,writeable:Int )
+		Local mode$,_mode:Int
 		If readable And writeable
 			mode="r+b"
 			_mode=MODE_READ|MODE_WRITE
@@ -650,7 +653,7 @@ Type TCStream Extends TStream
 			_mode=MODE_READ
 		EndIf
 		path=path.Replace( "\","/" )
-		Local cstream=fopen_( path,mode )
+		Local cstream:Int=fopen_( path,mode )
 ?Linux
 		If (Not cstream) And (Not writeable)
 			path=CasedFileName(path)
@@ -663,7 +666,7 @@ Type TCStream Extends TStream
 	Rem
 	bbdoc: Create a TCStream from a 'C' stream handle
 	end rem
-	Function CreateWithCStream:TCStream( cstream,mode )
+	Function CreateWithCStream:TCStream( cstream:Int,mode:Int )
 		Local stream:TCStream=New TCStream
 		stream._cstream=cstream
 		stream._pos=ftell_( cstream )
@@ -718,7 +721,7 @@ Type TStreamFactory
 	
 	If @url is not a string, both @proto and @path will be Null.
 	End Rem
-	Method CreateStream:TStream( url:Object,proto$,path$,readable,writeable ) Abstract
+	Method CreateStream:TStream( url:Object,proto$,path$,readable:Int,writeable:Int ) Abstract
 
 End Type
 
@@ -728,7 +731,7 @@ returns: A stream object
 about: All streams created by #OpenStream, #ReadStream or #WriteStream should eventually be
 closed using #CloseStream.
 End Rem
-Function OpenStream:TStream( url:Object,readable=True,writeable=True )
+Function OpenStream:TStream( url:Object,readable:Int=True,writeable:Int=True )
 
 	Local stream:TStream=TStream( url )
 	If stream
@@ -737,7 +740,7 @@ Function OpenStream:TStream( url:Object,readable=True,writeable=True )
 
 	Local str$=String( url ),proto$,path$
 	If str
-		Local i=str.Find( "::",0 )
+		Local i:Int=str.Find( "::",0 )
 		If i=-1 Return TCStream.OpenFile( str,readable,writeable )
 		proto$=str[..i].ToLower()
 		path$=str[i+2..]
@@ -776,7 +779,7 @@ Rem
 bbdoc: Get stream end of file status
 returns: True If stream is at end of file
 End Rem
-Function Eof( stream:TStream )
+Function Eof:Int( stream:TStream )
 	Return stream.Eof()
 End Function
 
@@ -784,7 +787,7 @@ Rem
 bbdoc: Get current position of seekable stream
 returns: Current stream position, or -1 If stream is not seekable
 End Rem
-Function StreamPos( stream:TStream )
+Function StreamPos:Int( stream:TStream )
 	Return stream.Pos()
 End Function
 
@@ -792,7 +795,7 @@ Rem
 bbdoc: Get current size of seekable stream
 returns: Current stream size in bytes, or -1 If stream is not seekable
 End Rem
-Function StreamSize( stream:TStream )
+Function StreamSize:Int( stream:TStream )
 	Return stream.Size()
 End Function
 
@@ -800,7 +803,7 @@ Rem
 bbdoc: Set stream position of seekable stream
 returns: New stream position, or -1 If stream is not seekable
 End Rem
-Function SeekStream( stream:TStream,pos )
+Function SeekStream:Int( stream:TStream,pos:Int )
 	Return stream.Seek( pos )
 End Function
 
@@ -828,7 +831,7 @@ returns: A Byte value
 about: #ReadByte reads a single Byte from @stream.
 A TStreamReadException is thrown If there is not enough data available.
 End Rem
-Function ReadByte( stream:TStream )
+Function ReadByte:Int( stream:TStream )
 	Return stream.ReadByte()
 End Function
 
@@ -838,7 +841,7 @@ returns: A Short value
 about: #ReadShort reads 2 bytes from @stream.
 A TStreamReadException is thrown If there is not enough data available.
 End Rem
-Function ReadShort( stream:TStream )
+Function ReadShort:Int( stream:TStream )
 	Return stream.ReadShort()
 End Function
 
@@ -848,7 +851,7 @@ returns: An Int value
 about: #ReadInt reads 4 bytes from @stream.
 A TStreamReadException is thrown If there is not enough data available.
 End Rem
-Function ReadInt( stream:TStream )
+Function ReadInt:Int( stream:TStream )
 	Return stream.ReadInt()
 End Function
 
@@ -887,7 +890,7 @@ bbdoc: Write a Byte to a stream
 about: #WriteByte writes a single Byte to @stream.
 A TStreamWriteException is thrown If the Byte could Not be written
 End Rem
-Function WriteByte( stream:TStream,n )
+Function WriteByte( stream:TStream,n:Int )
 	stream.WriteByte n
 End Function
 
@@ -896,7 +899,7 @@ bbdoc: Write a Short to a stream
 about: #WriteShort writes 2 bytes to @stream.
 A TStreamWriteException is thrown if not all bytes could be written
 End Rem
-Function WriteShort( stream:TStream,n )
+Function WriteShort( stream:TStream,n:Int )
 	stream.WriteShort n
 End Function
 
@@ -905,7 +908,7 @@ bbdoc: Write an Int to a stream
 about: #WriteInt writes 4 bytes to @stream.
 A TStreamWriteException is thrown if not all bytes could be written
 End Rem
-Function WriteInt( stream:TStream,n )
+Function WriteInt( stream:TStream,n:Int )
 	stream.WriteInt n
 End Function
 
@@ -942,7 +945,7 @@ returns: A String of length @length
 about:
 A #TStreamReadException is thrown if not all bytes could be read.
 end rem
-Function ReadString$( stream:TStream,length )
+Function ReadString$( stream:TStream,length:Int )
 	Return stream.ReadString( length )
 End Function
 
@@ -980,7 +983,7 @@ about:
 A sequence of bytes is written to the stream (one for each character in @str)
 followed by the line terminating sequence "~r~n".
 End Rem
-Function WriteLine( stream:TStream,str$ )
+Function WriteLine:Int( stream:TStream,str$ )
 	Return stream.WriteLine( str )
 End Function
 
@@ -1040,7 +1043,7 @@ End Rem
 Function LoadByteArray:Byte[]( url:Object )
 	Local stream:TStream=ReadStream( url )
 	If Not stream Throw New TStreamReadException
-	Local data:Byte[1024],size
+	Local data:Byte[1024],size:Int
 	While Not stream.Eof()
 		If size=data.length data=data[..size*3/2]
 		size:+stream.Read( (Byte Ptr data)+size,data.length-size )
@@ -1072,7 +1075,7 @@ of file.
 
 A #TStreamWriteException is thrown if not all bytes could be written.
 End Rem
-Function CopyStream( fromStream:TStream,toStream:TStream,bufSize=4096 )
+Function CopyStream( fromStream:TStream,toStream:TStream,bufSize:Int=4096 )
 	Assert bufSize>0
 	Local buf:Byte[bufSize]
 	While Not fromStream.Eof()
@@ -1088,11 +1091,11 @@ about:
 A #TStreamReadException is thrown if not all bytes could be read, and a
 #TStreamWriteException is thrown if not all bytes could be written.
 End Rem
-Function CopyBytes( fromStream:TStream,toStream:TStream,count,bufSize=4096 )
+Function CopyBytes( fromStream:TStream,toStream:TStream,count:Int,bufSize:Int=4096 )
 	Assert count>=0 And bufSize>0
 	Local buf:Byte[bufSize]
 	While count
-		Local n=Min(count,bufSize)
+		Local n:Int=Min(count,bufSize)
 		fromStream.ReadBytes buf,n
 		toStream.WriteBytes buf,n
 		count:-n
@@ -1103,8 +1106,9 @@ Rem
 bbdoc: Returns a case sensitive filename if it exists from a case insensitive file path.
 End Rem
 Function CasedFileName$(path$)
-	Local	dir,sub$,s$,f$,folder$,p
-	Local	mode,size,mtime,ctime
+	Local	dir:Int
+	Local	sub$,s$,f$,folder$,p:Int
+	Local	mode:Int,size:Int,mtime:Int,ctime:Int
         
 	If stat_( path,mode,size,mtime,ctime )=0
 		mode:&S_IFMT_
@@ -1116,8 +1120,10 @@ Function CasedFileName$(path$)
 	Next
 	If p>0
 		sub=path[0..p]
-		sub$=CasedFileName(sub$)
-		If Not sub$ Return
+		sub=CasedFileName(sub)
+		If Not sub Then
+			Return Null
+		End If
 		path=path$[Len(sub)+1..]
 		folder$=sub
 	EndIf
