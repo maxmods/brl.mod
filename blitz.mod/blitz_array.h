@@ -42,6 +42,8 @@ BBArray*	bbArrayDimensions( BBArray *arr );
 
 BBArray*	bbArrayConcat( const char *type,BBArray *x,BBArray *y );
 
+void bbArrayCopy(BBArray * srcArr, int srcPos, BBArray * dstArr, int dstPos, int length);
+
 #ifdef __cplusplus
 }
 #endif

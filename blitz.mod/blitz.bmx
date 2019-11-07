@@ -8,12 +8,14 @@ bbdoc: BASIC/BlitzMax runtime
 End Rem
 Module BRL.Blitz
 
-ModuleInfo "Version: 1.18"
+ModuleInfo "Version: 1.19"
 ModuleInfo "Author: Mark Sibly"
 ModuleInfo "License: zlib/libpng"
 ModuleInfo "Copyright: Blitz Research Ltd"
 ModuleInfo "Modserver: BRL"
 
+ModuleInfo "History: 1.19"
+ModuleInfo "History: Added ArrayCopy"
 ModuleInfo "History: 1.18"
 ModuleInfo "History: WriteStdout and WriteStderr now write UTF-8"
 ModuleInfo "History: 1.17 Release"
@@ -303,6 +305,11 @@ Rem
 bbdoc: Copy a potentially overlapping block of memory
 end rem
 Function MemMove( dst:Byte Ptr,src:Byte Ptr,size )="bbMemMove"
+
+Rem
+bbdoc: Copies an array from the specified @src array, starting at the position @srcPos, to the position @dstPos of the destination array.
+End Rem
+Function ArrayCopy(src:Object, srcPos:Int, dst:Object, dstPos:Int, length:Int)="bbArrayCopy"
 
 Rem
 bbdoc: Set garbage collector mode

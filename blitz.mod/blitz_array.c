@@ -64,6 +64,22 @@ static void bbArrayFree( BBObject *o ){
 #endif
 }
 
+static int arrayCellSize(const char * type, int * flags) {
+	int size = 4;
+	
+	switch( type[0] ){
+		case 'b':size=1;break;
+		case 's':size=2;break;
+		case 'l':size=8;break;
+		case 'd':size=8;break;
+		case ':':*flags=0;break;
+		case '$':*flags=0;break;
+		case '[':*flags=0;break;
+	}
+
+	return size;
+}
+
 static BBArray *allocateArray( const char *type,int dims,int *lens ){
 	int k,*len;
 	int size=4;
@@ -78,15 +94,7 @@ static BBArray *allocateArray( const char *type,int dims,int *lens ){
 		length*=n;
 	}
 		
-	switch( type[0] ){
-	case 'b':size=1;break;
-	case 's':size=2;break;
-	case 'l':size=8;break;
-	case 'd':size=8;break;
-	case ':':flags=0;break;
-	case '$':flags=0;break;
-	case '[':flags=0;break;
-	}
+	size = arrayCellSize(type, &flags);
 	size*=length;
 	
 	arr=(BBArray*)bbGCAllocObject( BBARRAYSIZE(size,dims),&bbArrayClass,flags );
@@ -232,6 +240,33 @@ BBArray *bbArraySlice( const char *type,BBArray *inarr,int beg,int end ){
 		}
 	}
 	return arr;
+}
+
+void bbArrayCopy(BBArray * srcArr, int srcPos, BBArray * dstArr, int dstPos, int length) {
+
+	if (srcPos < 0 || dstPos < 0 || length <= 0) {
+		return;
+	}
+	
+	if (strcmp(srcArr->type, dstArr->type)) {
+		brl_blitz_RuntimeError(bbStringFromCString("Incompatible array element types for copy"));
+	}
+	
+	if (srcPos + length > srcArr->scales[0]) {
+		brl_blitz_ArrayBoundsError();
+	}
+
+	if (dstPos + length > dstArr->scales[0]) {
+		brl_blitz_ArrayBoundsError();
+	}
+	
+	int flags = 0;
+	int size = arrayCellSize(srcArr->type, &flags);
+	
+	char * src = (char*)BBARRAYDATA(srcArr, 1) + srcPos * size;
+	char * dst = (char*)BBARRAYDATA(dstArr, 1) + dstPos * size;
+	
+	memmove(dst, src, length * size);
 }
 
 BBArray *bbArrayConcat( const char *type,BBArray *x,BBArray *y ){

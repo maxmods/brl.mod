@@ -1,7 +1,8 @@
 ## 1.1.0
 TBA
 
-#### brl.blitz - 1.18
+#### brl.blitz - 1.19
+* Added ArrayCopy.
 * WriteStdout and WriteStderr now write UTF-8.
 * Fixed MemExtend Null pointer crash.
 
