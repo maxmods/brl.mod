@@ -1,4 +1,3 @@
-
 Strict
 
 Import "driver.bmx"
@@ -18,6 +17,8 @@ Function bbSetMouseVisible(visible)
 Function bbMoveMouse(x,y)
 Function bbSystemDisplay()
 Function bbSystemEventHandler( callback(xevent:Byte Ptr) )
+
+Function bbSystemNotify( text$,serious )
 
 Function bbSystemPostSyncOp( syncOp( syncInfo:Object,asyncRet ),syncInfo:Object,asyncRet )
 Function bbSystemStartAsyncOp( asyncOp( asyncInfo ),asyncInfo,syncOp( syncInfo:Object,asyncRet ),syncInfo:Object )
@@ -61,7 +62,8 @@ Type TLinuxSystemDriver Extends TSystemDriver
 	End Method
 
 	Method Notify( text$,serious )
-		WriteStdout text+"~r~n"
+		system_ "xmessage -center ~q"+text+"~q"
+'		WriteStdout text+"~r~n"
 	End Method
 	
 	Method Confirm( text$,serious )

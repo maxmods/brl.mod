@@ -415,3 +415,14 @@ int bbSystemDesktopHertz(){
 	XFree( xmodes );
 	return sz;
 }
+
+
+void bbSystemNotify( BBString *text,int serious ){
+    char cmd[1024];
+    sprintf(cmd, "xmessage -center \"%s\"", text);
+    if(fork()==0){
+        close(1); close(2);
+        system(cmd);
+        exit(0);
+    }
+}
